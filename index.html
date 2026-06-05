@@ -14,11 +14,37 @@
             background: transparent;
             padding: 10px;
             font-size: 15px;
-            color: white;
+            color: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             min-height: 100vh;
+        }
+
+        #close-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        #close-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        #close-btn:active {
+            transform: translateY(0);
+            background: rgba(0, 0, 0, 0.65);
         }
 
         /* 普通弹幕样式 */
@@ -28,6 +54,22 @@
             border-radius: 8px;
             margin-bottom: 8px;
             animation: fadeIn 0.3s ease;
+            color: #fff;
+        }
+
+        .danmu-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .danmu-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         /* 礼物高亮样式（金色） */
@@ -80,35 +122,86 @@
 </head>
 
 <body>
+    <button id="close-btn" onclick="closeApp()">关闭</button>
     <div id="list"></div>
     <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error('前端错误：', message, source, lineno, colno, error);
+        };
+
+        async function closeApp() {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.closeWindow === 'function') {
+                try {
+                    await window.pywebview.api.closeWindow();
+                } catch (e) {
+                    console.error('关闭窗口失败：', e);
+                }
+            } else {
+                window.close();
+            }
+        }
+
         function addDanmu(data) {
+            console.log('addDanmu 接收到数据：', data);
             const list = document.getElementById('list');
             const div = document.createElement('div');
 
-            // 判断类型，切换样式
             if (data.type === "danmu") {
                 div.className = "danmu-item";
-                div.innerHTML = `
-                    <span class="medal">[${data.medal_name}·${data.medal_level}]</span>
-                    <span class="name">${data.username}</span>：${data.content}
-                `;
+
+                const header = document.createElement('div');
+                header.className = 'danmu-header';
+
+                if (data.avatar_url) {
+                    const avatar = document.createElement('img');
+                    avatar.className = 'danmu-avatar';
+                    avatar.src = data.avatar_url;
+                    avatar.alt = '头像';
+                    avatar.onerror = function () {
+                        this.style.display = 'none';
+                    };
+                    header.appendChild(avatar);
+                }
+
+                const medal = document.createElement('span');
+                medal.className = 'medal';
+                medal.textContent = `[${data.medal_name}·${data.medal_level}]`;
+                header.appendChild(medal);
+
+                const name = document.createElement('span');
+                name.className = 'name';
+                name.textContent = data.username;
+                header.appendChild(name);
+
+                const content = document.createElement('div');
+                content.className = 'content';
+                content.textContent = data.content;
+
+                div.appendChild(header);
+                div.appendChild(content);
             } else if (data.type === "gift") {
                 div.className = "gift-item";
                 div.innerHTML = `
-                    <span class="gift-medal">[${data.medal_name}·${data.medal_level}]</span>
-                    <span>${data.username} 赠送 ×${data.gift_num}【${data.gift_name}】 | ${data.total_coin / 1000}元</span>
+                    <div class="gift-header">
+                        <span class="gift-medal">[${data.medal_name}·${data.medal_level}]</span>
+                        <span class="name">${data.username}</span>
+                        <span class="type-label">礼物</span>
+                    </div>
+                    <div class="content">赠送 ×${data.gift_num}【${data.gift_name}】 · ${data.total_coin / 1000} 元</div>
                 `;
             } else if (data.type === "GUARD_BUY") {
                 div.className = "guard-item";
                 div.innerHTML = `
-                    <span class="gift-medal">[${data.medal_name}·${data.medal_level}]</span>
-                    <span>${data.username} 续费大航海 ${data.guard_level || ''}${data.guard_name ? ' ' + data.guard_name : ''}</span>
+                    <div class="guard-header">
+                        <span class="gift-medal">[${data.medal_name}·${data.medal_level}]</span>
+                        <span class="name">${data.username}</span>
+                        <span class="type-label">续费</span>
+                    </div>
+                    <div class="content">续费大航海 ${data.guard_level || ''}${data.guard_name ? ' ' + data.guard_name : ''}</div>
                 `;
             }
 
             list.appendChild(div);
-            // 最多保留100条消息，超出删除最顶部
             while (list.children.length > 100) {
                 list.removeChild(list.firstChild);
             }

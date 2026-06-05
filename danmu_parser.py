@@ -1,0 +1,100 @@
+import json
+
+from avatar_proxy import fetch_image_data_uri
+
+
+def _safe_list(lst, index, default):
+    if isinstance(lst, list) and len(lst) > index:
+        return lst[index]
+    return default
+
+
+def _find_face(obj):
+    if isinstance(obj, dict):
+        if 'base' in obj and isinstance(obj['base'], dict):
+            face = obj['base'].get('face') or obj['base'].get('origin_info', {}).get('face')
+            if face:
+                return face
+        if 'user' in obj and isinstance(obj['user'], dict):
+            face = obj['user'].get('base', {}).get('face') or obj['user'].get('base', {}).get('origin_info', {}).get('face')
+            if face:
+                return face
+        for v in obj.values():
+            result = _find_face(v)
+            if result:
+                return result
+    elif isinstance(obj, list):
+        for item in obj:
+            result = _find_face(item)
+            if result:
+                return result
+    return None
+
+
+def parse_bilibili_danmu(raw_data):
+    try:
+        data = raw_data.get('data', {})
+        info = data.get('info', [])
+
+        content = _safe_list(info, 1, '无内容')
+        user_info = info[2] if len(info) > 2 else []
+        medal_info = info[3] if len(info) > 3 else []
+        extra_info = info[15] if len(info) > 15 else {}
+
+        extra = {}
+        try:
+            extra_str = extra_info.get('extra', '{}') if isinstance(extra_info, dict) else '{}'
+            extra = json.loads(extra_str)
+        except Exception:
+            extra = {}
+
+        avatar_url = _find_face(data) or _find_face(info)
+        avatar_url = fetch_image_data_uri(avatar_url)
+
+        return {
+            'type': 'danmu',
+            'username': _safe_list(user_info, 1, '匿名用户'),
+            'content': content,
+            'avatar_url': avatar_url,
+            'medal_level': _safe_list(medal_info, 0, 0),
+            'medal_name': _safe_list(medal_info, 1, '无粉丝牌'),
+        }
+    except Exception as e:
+        print(f'弹幕解析失败: {e}')
+        return None
+
+
+def parse_gift(raw_data):
+    try:
+        body = raw_data.get('data', {})
+        gift_data = body.get('data', {})
+        sender_info = body.get('sender_uinfo', {})
+        user_base = sender_info.get('base', {})
+
+        medal = (
+            gift_data.get('medal_info') or gift_data.get('medal')
+            or sender_info.get('medal') or sender_info.get('medal_info') or {}
+        )
+
+        username = gift_data.get('uname') or sender_info.get('uname') or user_base.get('name', '匿名用户')
+
+        total_coin = gift_data.get('total_coin', 0)
+        if total_coin == 0:
+            total_coin = gift_data.get('combo_total_coin', 0)
+        if total_coin == 0:
+            price = gift_data.get('price', 0)
+            num = gift_data.get('num', 1)
+            total_coin = price * num
+
+        return {
+            'type': 'gift',
+            'username': username,
+            'gift_name': gift_data.get('giftName', gift_data.get('gift_name', '未知礼物')),
+            'gift_num': gift_data.get('num', 1),
+            'total_coin': total_coin,
+            'medal_name': medal.get('medal_name', medal.get('name', '无粉丝牌')),
+            'medal_level': medal.get('medal_level', medal.get('level', 0)),
+        }
+    except Exception as e:
+        print(f'礼物解析失败: {e}')
+        return None
