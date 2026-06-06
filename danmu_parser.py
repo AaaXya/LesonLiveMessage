@@ -71,27 +71,52 @@ def parse_gift(raw_data):
         sender_info = body.get('sender_uinfo', {})
         user_base = sender_info.get('base', {})
 
-        medal = (
-            gift_data.get('medal_info') or gift_data.get('medal')
-            or sender_info.get('medal') or sender_info.get('medal_info') or {}
-        )
+        def choose_medal():
+            candidates = [
+                gift_data.get('medal_info'),
+                gift_data.get('medal'),
+                body.get('medal_info'),
+                body.get('medal'),
+                sender_info.get('medal'),
+                sender_info.get('medal_info'),
+            ]
+            for item in candidates:
+                if isinstance(item, dict) and (item.get('medal_name') or item.get('name')):
+                    return item
+            for item in candidates:
+                if isinstance(item, dict):
+                    return item
+            return {}
+
+        medal = choose_medal()
 
         username = gift_data.get('uname') or sender_info.get('uname') or user_base.get('name', '匿名用户')
 
-        total_coin = gift_data.get('total_coin', 0)
-        if total_coin == 0:
-            total_coin = gift_data.get('combo_total_coin', 0)
-        if total_coin == 0:
-            price = gift_data.get('price', 0)
-            num = gift_data.get('num', 1)
-            total_coin = price * num
+        actual_coin = gift_data.get('total_coin', 0)
+        if actual_coin == 0:
+            actual_coin = gift_data.get('combo_total_coin', 0)
+        if actual_coin == 0:
+            actual_coin = gift_data.get('original_gift_price', 0) or gift_data.get('price', 0) * gift_data.get('num', 1)
+
+        paid_coin = gift_data.get('discount_price')
+        if paid_coin is None:
+            paid_coin = gift_data.get('price', 0)
+        if paid_coin == 0:
+            paid_coin = gift_data.get('price', 0)
+
+        num = gift_data.get('num', 1)
+        if num and paid_coin != 0 and gift_data.get('price') not in (None, 0):
+            # paid_coin may already be per item or total
+            if paid_coin == gift_data.get('price'):
+                paid_coin = paid_coin * num
 
         return {
             'type': 'gift',
             'username': username,
             'gift_name': gift_data.get('giftName', gift_data.get('gift_name', '未知礼物')),
-            'gift_num': gift_data.get('num', 1),
-            'total_coin': total_coin,
+            'gift_num': num,
+            'total_coin': actual_coin,
+            'paid_coin': paid_coin,
             'medal_name': medal.get('medal_name', medal.get('name', '无粉丝牌')),
             'medal_level': medal.get('medal_level', medal.get('level', 0)),
         }

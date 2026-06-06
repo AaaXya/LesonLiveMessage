@@ -10,31 +10,136 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
+            width: 100%;
+            height: 100%;
             background: transparent;
-            padding: 10px;
+        }
+
+        body {
+            padding: 10px 10px 90px;
             font-size: 15px;
             color: #ffffff;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
             min-height: 100vh;
+            overflow-y: auto;
+            background: transparent;
         }
 
-        #close-btn {
+        #window-controls {
             position: fixed;
             top: 10px;
             right: 10px;
             z-index: 1000;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 999px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #ffffff;
-            font-size: 0.95rem;
+            display: flex;
+            gap: 6px;
+        }
+
+        .window-button {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
             cursor: pointer;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
-            transition: transform 0.2s ease, background 0.2s ease;
+            font-size: 0.95rem;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .window-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .window-button.close {
+            background: rgba(255, 78, 78, 0.9);
+        }
+
+        .window-button.close:hover {
+            background: rgba(255, 78, 78, 1);
+        }
+
+        #close-btn {
+            display: none;
+        }
+
+        #close-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        #close-btn:active {
+            transform: translateY(0);
+            background: rgba(0, 0, 0, 0.65);
+        }
+
+        #list {
+            margin-bottom: 14px;
+        }
+
+        #danmu-box {
+            position: fixed;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            z-index: 999;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            backdrop-filter: blur(12px);
+        }
+
+        #danmu-input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        #danmu-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        #danmu-send-btn {
+            border: none;
+            background: linear-gradient(135deg, #ff6b6b, #ffcc33);
+            color: #000;
+            border-radius: 999px;
+            padding: 10px 18px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        #danmu-send-btn:hover {
+            opacity: 0.95;
+        }
+
+        #danmu-status {
+            position: fixed;
+            left: 10px;
+            right: 10px;
+            bottom: 66px;
+            z-index: 998;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            pointer-events: none;
         }
 
         #close-btn:hover {
@@ -49,27 +154,54 @@
 
         /* 普通弹幕样式 */
         .danmu-item {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            animation: fadeIn 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 4px 0;
+            margin-bottom: 10px;
+            animation: fadeIn 0.25s ease;
             color: #fff;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+
+        .danmu-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .danmu-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .danmu-header {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 6px;
+            margin: 0;
+            font-size: 0.95rem;
         }
 
-        .danmu-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .danmu-bubble {
+            background: linear-gradient(135deg, rgba(63, 163, 255, 0.96), rgba(141, 105, 255, 0.95));
+            border-radius: 18px;
+            padding: 10px 14px;
+            word-break: break-word;
+            line-height: 1.5;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         /* 礼物高亮样式（金色） */
@@ -122,8 +254,18 @@
 </head>
 
 <body>
-    <button id="close-btn" onclick="closeApp()">关闭</button>
+    <div id="window-controls">
+        <button class="window-button" title="最小化" onclick="minimizeApp()">─</button>
+        <button class="window-button" title="最大化/还原" onclick="toggleMaximizeApp()">▢</button>
+        <button class="window-button close" title="关闭" onclick="closeApp()">×</button>
+    </div>
     <div id="list"></div>
+    <div id="danmu-box">
+        <input id="danmu-input" type="text" placeholder="输入弹幕后按 Enter 发送" autocomplete="off"
+            onkeydown="handleDanmuKeydown(event)">
+        <button id="danmu-send-btn" onclick="handleSendDanmu()">发送</button>
+    </div>
+    <div id="danmu-status"></div>
     <script>
         window.onerror = function (message, source, lineno, colno, error) {
             console.error('前端错误：', message, source, lineno, colno, error);
@@ -141,6 +283,60 @@
             }
         }
 
+        function showDanmuStatus(message, duration = 2400) {
+            const status = document.getElementById('danmu-status');
+            status.textContent = message;
+            if (duration > 0) {
+                setTimeout(() => {
+                    status.textContent = '';
+                }, duration);
+            }
+        }
+
+        function minimizeApp() {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.minimizeWindow === 'function') {
+                window.pywebview.api.minimizeWindow();
+            }
+        }
+
+        function toggleMaximizeApp() {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.toggleMaximizeWindow === 'function') {
+                window.pywebview.api.toggleMaximizeWindow();
+            }
+        }
+
+        function handleSendDanmu() {
+            const input = document.getElementById('danmu-input');
+            const text = input.value.trim();
+            if (!text) {
+                showDanmuStatus('请输入弹幕内容');
+                return;
+            }
+
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.sendDanmu === 'function') {
+                window.pywebview.api.sendDanmu(text).then((result) => {
+                    if (result && result.ok) {
+                        showDanmuStatus('弹幕已发送');
+                        input.value = '';
+                    } else {
+                        showDanmuStatus('发送失败：' + (result && result.error ? result.error : '未知错误'));
+                    }
+                }).catch((error) => {
+                    console.error('sendDanmu 调用失败：', error);
+                    showDanmuStatus('发送失败：后端调用异常');
+                });
+            } else {
+                showDanmuStatus('后端发送接口不可用');
+            }
+        }
+
+        function handleDanmuKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleSendDanmu();
+            }
+        }
+
         function addDanmu(data) {
             console.log('addDanmu 接收到数据：', data);
             const list = document.getElementById('list');
@@ -148,9 +344,6 @@
 
             if (data.type === "danmu") {
                 div.className = "danmu-item";
-
-                const header = document.createElement('div');
-                header.className = 'danmu-header';
 
                 if (data.avatar_url) {
                     const avatar = document.createElement('img');
@@ -160,8 +353,14 @@
                     avatar.onerror = function () {
                         this.style.display = 'none';
                     };
-                    header.appendChild(avatar);
+                    div.appendChild(avatar);
                 }
+
+                const body = document.createElement('div');
+                body.className = 'danmu-body';
+
+                const header = document.createElement('div');
+                header.className = 'danmu-header';
 
                 const medal = document.createElement('span');
                 medal.className = 'medal';
@@ -173,12 +372,13 @@
                 name.textContent = data.username;
                 header.appendChild(name);
 
-                const content = document.createElement('div');
-                content.className = 'content';
-                content.textContent = data.content;
+                const bubble = document.createElement('div');
+                bubble.className = 'danmu-bubble';
+                bubble.textContent = data.content;
 
-                div.appendChild(header);
-                div.appendChild(content);
+                body.appendChild(header);
+                body.appendChild(bubble);
+                div.appendChild(body);
             } else if (data.type === "gift") {
                 div.className = "gift-item";
                 div.innerHTML = `
@@ -187,7 +387,10 @@
                         <span class="name">${data.username}</span>
                         <span class="type-label">礼物</span>
                     </div>
-                    <div class="content">赠送 ×${data.gift_num}【${data.gift_name}】 · ${data.total_coin / 1000} 元</div>
+                    <div class="content">
+                    赠送 ×${data.gift_num}【${data.gift_name}】 · ${data.total_coin / 1000} 元
+                    ${data.paid_coin && data.paid_coin !== data.total_coin ? '（花费 ' + (data.paid_coin / 1000) + ' 元）' : ''}
+                </div>
                 `;
             } else if (data.type === "GUARD_BUY") {
                 div.className = "guard-item";
