@@ -5,14 +5,10 @@ import datetime
 # 你的 NapCat 配置
 NAPCAT_URL = "http://127.0.0.1:3000/send_msg"
 NAPCAT_TOKEN = "4D7iSSwiD85HCl8h"
-GROUP_ID = "884305387"
+GROUP_ID = "1093523827"
 
 
 def send_qq_group(msg: str):
-    """
-    发送消息到QQ群
-    :param msg: 要发送的文字内容
-    """
     payload = json.dumps(
         {
             "message_type": "group",

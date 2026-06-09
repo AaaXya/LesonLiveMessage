@@ -18,13 +18,15 @@
         }
 
         body {
-            padding: 10px 10px 90px;
+            /* 【修改1】清除左右白边，仅保留底部少量间距防止内容被遮挡 */
+            margin: 0;
+            padding: 0 0 72px;
             font-size: 15px;
             color: #ffffff;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            overflow-y: auto;
+            overflow-y: hidden;
             background: transparent;
         }
 
@@ -80,14 +82,34 @@
         }
 
         #list {
-            margin-bottom: 14px;
+            /* 【修改2】清除列表与发送框之间的垂直白边 */
+            margin-bottom: 0;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
         }
 
+        #list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #list::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+        }
+
+        /* 【修改3】发送框全屏贴边，清除左右白边，调整圆角适配贴边样式 */
         #danmu-box {
             position: fixed;
-            left: 10px;
-            right: 10px;
-            bottom: 10px;
+            left: 0;
+            right: 0;
+            bottom: 0;
             z-index: 999;
             display: flex;
             gap: 8px;
@@ -95,7 +117,8 @@
             padding: 10px 12px;
             background: rgba(0, 0, 0, 0.55);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 999px;
+            /* 底部直角贴合屏幕，仅保留顶部圆角，视觉更协调 */
+            border-radius: 12px 12px 0 0;
             backdrop-filter: blur(12px);
         }
 
@@ -130,11 +153,12 @@
             opacity: 0.95;
         }
 
+        /* 【修改4】同步调整状态提示文字位置，避免与发送框重叠 */
         #danmu-status {
             position: fixed;
-            left: 10px;
-            right: 10px;
-            bottom: 66px;
+            left: 0;
+            right: 0;
+            bottom: 58px;
             z-index: 998;
             text-align: center;
             color: rgba(255, 255, 255, 0.8);
@@ -142,20 +166,19 @@
             pointer-events: none;
         }
 
-        #close-btn:hover {
-            transform: translateY(-1px);
-            background: rgba(0, 0, 0, 0.75);
+        /* 【修改5】同步调整回到底部按钮位置 */
+        #scroll-to-bottom {
+            position: fixed;
+            bottom: 64px;
+            right: 12px;
+            z-index: 1000;
+            display: none;
+            /* 默认隐藏 */
         }
 
-        #close-btn:active {
-            transform: translateY(0);
-            background: rgba(0, 0, 0, 0.65);
-        }
-
-        /* 普通弹幕样式 */
         .danmu-item {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 12px;
             padding: 4px 0;
             margin-bottom: 10px;
@@ -201,10 +224,13 @@
             word-break: break-word;
             line-height: 1.5;
             box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background-clip: padding-box;
+            /* 新增：字体抗锯齿，弱化边缘彩边 */
+            -webkit-font-smoothing: antialiased;
+            /* 新增：硬件加速，减少重复渲染残影 */
+            will-change: transform;
         }
 
-        /* 礼物高亮样式（金色） */
         .gift-item {
             background: rgba(212, 160, 0, 0.75);
             padding: 8px 12px;
@@ -229,7 +255,6 @@
             margin-right: 6px;
         }
 
-        /* 大航海续费样式 */
         .guard-item {
             background: rgba(0, 116, 204, 0.8);
             padding: 8px 12px;
@@ -260,6 +285,7 @@
         <button class="window-button close" title="关闭" onclick="closeApp()">×</button>
     </div>
     <div id="list"></div>
+    <button id="scroll-to-bottom" class="window-button" title="回到底部" onclick="scrollToBottom()">↓</button>
     <div id="danmu-box">
         <input id="danmu-input" type="text" placeholder="输入弹幕后按 Enter 发送" autocomplete="off"
             onkeydown="handleDanmuKeydown(event)">
@@ -270,6 +296,17 @@
         window.onerror = function (message, source, lineno, colno, error) {
             console.error('前端错误：', message, source, lineno, colno, error);
         };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const list = document.getElementById('list');
+            list.addEventListener('scroll', checkScrollBottom);
+
+            // 【核心修改6】页面加载完成后 默认自动滚动到弹幕底部（延时确保DOM渲染完成）
+            setTimeout(() => {
+                list.scrollTop = list.scrollHeight;
+                checkScrollBottom(); // 初始化检测：底部状态 → 隐藏回到底部按钮
+            }, 50);
+        });
 
         async function closeApp() {
             if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.closeWindow === 'function') {
@@ -335,6 +372,21 @@
                 event.preventDefault();
                 handleSendDanmu();
             }
+        }
+
+        function scrollToBottom() {
+            const list = document.getElementById('list');
+            list.scrollTop = list.scrollHeight;
+            document.getElementById('scroll-to-bottom').style.display = 'none';
+        }
+
+        // 滚动状态检测：仅离开底部时显示按钮，回到底部自动隐藏
+        function checkScrollBottom() {
+            const list = document.getElementById('list');
+            const scrollBtn = document.getElementById('scroll-to-bottom');
+            // 预留10px误差，兼容浏览器滚动像素偏差
+            const isAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+            scrollBtn.style.display = isAtBottom ? 'none' : 'inline-flex';
         }
 
         function addDanmu(data) {
@@ -405,9 +457,17 @@
             }
 
             list.appendChild(div);
+            // 限制最多保留100条弹幕，避免内存溢出
             while (list.children.length > 100) {
                 list.removeChild(list.firstChild);
             }
+
+            // 原有逻辑保留：停在底部时，新弹幕自动跟进；手动上滚则保持当前位置
+            const isAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+            if (isAtBottom) {
+                list.scrollTop = list.scrollHeight;
+            }
+            checkScrollBottom();
         }
     </script>
 </body>

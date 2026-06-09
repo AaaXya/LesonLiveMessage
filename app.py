@@ -148,13 +148,14 @@ if __name__ == "__main__":
         room.on("GUARD_BUY")(on_guard_buy_handler)
         room.on("SUPER_CHAT_MESSAGE")(on_super_chat_handler)
         room.on("SEND_GIFT")(on_gift_handler)
+        room.on("PREPARING")(lambda e: print("直播准备中：", e))
 
     window = webview.create_window(
         title="B站弹幕姬",
         url="index.html",
         js_api=CloseApi(),
-        width=500,
-        height=800,
+        width=400,
+        height=700,
         frameless=True,
         on_top=True,
         transparent=True,
