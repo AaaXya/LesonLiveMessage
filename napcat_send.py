@@ -1,11 +1,21 @@
 import requests
 import json
 import datetime
+import os
+
+
+def load_config():
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
 
 # 你的 NapCat 配置
 NAPCAT_URL = "http://127.0.0.1:3000/send_msg"
 NAPCAT_TOKEN = "4D7iSSwiD85HCl8h"
-GROUP_ID = "1093523827"
+GROUP_ID = config["GROUPID"]
 
 
 def send_qq_group(msg: str):
