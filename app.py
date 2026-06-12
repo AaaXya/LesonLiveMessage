@@ -88,6 +88,8 @@ class CloseApi:
 window = None
 room = None
 sender = None
+room_title = None
+room_cover = None
 
 
 # 推送数据到前端
@@ -129,12 +131,23 @@ state = 0
 
 
 async def live_start_handler(event):
+    global state  # ✅ 必须加这行，声明要修改全局变量state
     if features["enable_live_start"]:
         state += 1
         print("直播开始：", event)
         if features["enable_qq_notification"]:
             if state == 1:  # 只在第一次直播开始时发送通知，避免重复通知
-                send_qq_group("直播开始了！快来看看吧！")
+                from avatar_proxy import fetch_image_data_uri_uncompressed
+
+                cover_data_uri = (
+                    fetch_image_data_uri_uncompressed(room_cover)
+                    if room_cover
+                    else None
+                )
+                send_qq_group(
+                    f"直播开始了：\n{room_title}\nhttps://live.bilibili.com/{str(LESSONROOMID)}",
+                    cover_data_uri,
+                )
 
 
 # 礼物处理器
@@ -159,6 +172,15 @@ def on_window_ready():
         print("警告：弹幕发送器未初始化")
 
 
+async def init_sender_and_get_info():
+    global sender, room_title, room_cover
+    room_info = await sender.get_room_info()
+    room_title = room_info["room_info"]["title"]
+    room_cover = room_info["room_info"]["cover"]
+    print("✓ 获取直播间信息成功", room_info["room_info"])
+    print("直播间信息：", room_title, room_cover)
+
+
 if __name__ == "__main__":
     # 获取有效的登录凭据
     COOKIES_FILE = os.path.join(os.path.dirname(__file__), "cookies.json")
@@ -169,17 +191,20 @@ if __name__ == "__main__":
         try:
             room = live.LiveDanmaku(LESSONROOMID, credential=credential)
             sender = live.LiveRoom(LESSONROOMID, credential=credential)
+            sync(init_sender_and_get_info())
             print("✓ 使用有效的凭据初始化 LiveDanmaku 和 LiveRoom")
 
         except Exception as e:
             print("✗ 初始化 LiveDanmaku/LiveRoom 失败：", e)
             room = live.LiveDanmaku(LESSONROOMID)
             sender = live.LiveRoom(LESSONROOMID)
+            sync(init_sender_and_get_info())
     else:
         print("⚠ 无有效凭据，使用无凭据模式初始化 LiveDanmaku 和 LiveRoom")
         room = live.LiveDanmaku(LESSONROOMID)
         sender = live.LiveRoom(LESSONROOMID)
 
+        sync(init_sender_and_get_info())
     # 注册事件处理器
     if room:
         if features["enable_live_start"]:

@@ -440,8 +440,8 @@
                         <span class="type-label">礼物</span>
                     </div>
                     <div class="content">
-                    赠送 ×${data.gift_num}【${data.gift_name}】 · ${data.total_coin / 1000} 元
-                    ${data.paid_coin && data.paid_coin !== data.total_coin ? '（花费 ' + (data.paid_coin / 1000) + ' 元）' : ''}
+                    赠送 ×${data.gift_num}【${data.gift_name}】 · ${data.paid_coin / 1000} 元
+                    ${data.paid_coin && data.paid_coin !== data.total_coin ? '（花费 ' + (data.total_coin / 1000) + ' 元）' : ''}
                 </div>
                 `;
             } else if (data.type === "GUARD_BUY") {
@@ -462,11 +462,8 @@
                 list.removeChild(list.firstChild);
             }
 
-            // 原有逻辑保留：停在底部时，新弹幕自动跟进；手动上滚则保持当前位置
-            const isAtBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
-            if (isAtBottom) {
-                list.scrollTop = list.scrollHeight;
-            }
+            // 新消息自动滚动到底部
+            list.scrollTop = list.scrollHeight;
             checkScrollBottom();
         }
     </script>

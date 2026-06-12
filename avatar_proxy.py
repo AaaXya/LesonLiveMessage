@@ -57,3 +57,23 @@ def fetch_image_data_uri(url):
         print(f'头像代理请求失败: {url} -> {e}')
         avatar_cache[url] = None
         return None
+
+
+def fetch_image_data_uri_uncompressed(url):
+    """Fetch remote image and return an uncompressed data URI."""
+    if not url or url.startswith('data:'):
+        return url
+
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Referer': 'https://www.bilibili.com/',
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        data_uri = f"data:{content_type};base64,{base64.b64encode(resp.content).decode('ascii')}"
+        return data_uri
+    except Exception as e:
+        print(f'获取图片失败: {url} -> {e}')
+        return None
