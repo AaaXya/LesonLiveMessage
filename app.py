@@ -5,6 +5,7 @@ import os
 from login import get_credential
 from danmu_parser import parse_bilibili_danmu, parse_gift
 from napcat_send import send_qq_group
+from danmu_db import save_danmu, is_full_bracket_text
 
 
 def load_config():
@@ -107,6 +108,9 @@ async def on_danmaku_handler(event):
         else:
             parsed_to_log = parsed
         print(parsed_to_log)
+        content = parsed_to_log["content"]
+        if not is_full_bracket_text(content):
+            save_danmu(parsed)  # 存储到数据库
         send_to_frontend(parsed)
 
 
