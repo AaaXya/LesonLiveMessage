@@ -229,4 +229,4 @@ if __name__ == "__main__":
         transparent=True,
     )
     window.events.loaded += on_window_ready
-    webview.start(debug=True)
+    webview.start(debug=features["web_debug"])
