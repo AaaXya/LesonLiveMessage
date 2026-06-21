@@ -26,10 +26,7 @@ def load_config():
 
 
 def resolve_frontend_index(base_path):
-    frontend_index = os.path.join(base_path, "frontend", "dist", "index.html")
-    if os.path.exists(frontend_index):
-        return frontend_index
-    return os.path.join(base_path, "index.html")
+    return os.path.join(base_path, "frontend", "dist", "index.html")
 
 
 config = load_config()
