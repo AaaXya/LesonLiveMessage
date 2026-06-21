@@ -6,6 +6,7 @@ from login import get_credential
 from danmu_parser import parse_bilibili_danmu, parse_gift
 from napcat_send import send_qq_group
 from danmu_db import save_danmu, is_full_bracket_text
+from frontend_config import FrontendConfigApi, apply_room_binding
 
 
 def load_config():
@@ -19,18 +20,26 @@ def load_config():
 
     with open(config_path, "r", encoding="utf-8") as f:
         try:
-            return json.load(f)
+            return apply_room_binding(json.load(f))
         except json.JSONDecodeError:
             raise ValueError("config.json 格式错误，请检查语法")
 
 
 config = load_config()
 LESSONROOMID = config["LESSONROOMID"]
-GROUPID = config["GROUPID"]
 features = config["features"]
 
 
-class CloseApi:
+class CloseApi(FrontendConfigApi):
+    def saveFrontendConfig(self, update):
+        result = super().saveFrontendConfig(update)
+        if result.get("ok"):
+            global config, LESSONROOMID, features
+            config = load_config()
+            LESSONROOMID = config["LESSONROOMID"]
+            features = config["features"]
+        return result
+
     def closeWindow(self):
         global window
         if window:
@@ -110,7 +119,7 @@ async def on_danmaku_handler(event):
         print(parsed_to_log)
         content = parsed_to_log["content"]
         if not is_full_bracket_text(content):
-            save_danmu(parsed)  # 存储到数据库
+            save_danmu(parsed, LESSONROOMID)  # 存储到当前直播间数据库
         send_to_frontend(parsed)
 
 
@@ -151,6 +160,7 @@ async def live_start_handler(event):
                 send_qq_group(
                     f"直播开始了：\n{room_title}\nhttps://live.bilibili.com/{str(LESSONROOMID)}",
                     cover_data_uri,
+                    LESSONROOMID,
                 )
 
 

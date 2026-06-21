@@ -10,15 +10,24 @@ def load_config():
         return json.load(f)
 
 
-config = load_config()
-
 # 你的 NapCat 配置
 NAPCAT_URL = "http://127.0.0.1:3000/send_msg"
 NAPCAT_TOKEN = "4D7iSSwiD85HCl8h"
-GROUP_ID = config["GROUPID"]
 
 
-def send_qq_group(msg: str, image: str = None):
+def get_group_id(room_id=None):
+    config = load_config()
+    if room_id is None:
+        room_id = config.get("LESSONROOMID")
+    binding = config.get("room_bindings", {}).get(str(room_id), {})
+    return str(binding.get("GROUPID", "")).strip()
+
+
+def send_qq_group(msg: str, image: str = None, room_id=None):
+    group_id = get_group_id(room_id)
+    if not group_id:
+        print(f"[{datetime.datetime.now()}] 未配置 QQ 群号，跳过发送")
+        return None
     # 动态构造消息内容（核心修改点）
     if image and image.strip():
         # 有图片：构造消息段数组
@@ -35,7 +44,7 @@ def send_qq_group(msg: str, image: str = None):
     payload = json.dumps(
         {
             "message_type": "group",
-            "group_id": GROUP_ID,
+            "group_id": group_id,
             "message": message,  # 用参数传入，灵活修改
         }
     )

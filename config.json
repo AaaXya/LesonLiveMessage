@@ -1,13 +1,20 @@
 {
   "LESSONROOMID": 1879006019,
-  "GROUPID": "1093523827",
+  "room_bindings": {
+    "1879006019": {
+      "GROUPID": "1093523827",
+      "enable_qq_notification": true
+    }
+  },
+  "frontend": {
+    "theme": "sakura"
+  },
   "features": {
     "enable_danmaku": true,
     "enable_guard_buy": true,
     "enable_super_chat": true,
     "enable_live_start": true,
     "enable_gift": true,
-    "enable_qq_notification": true,
     "web_debug": false
   }
 }

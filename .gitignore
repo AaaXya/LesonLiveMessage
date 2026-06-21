@@ -2,3 +2,4 @@ cookies.json
 danmu.db
 __pycache__/
 *.pyc
+data/
