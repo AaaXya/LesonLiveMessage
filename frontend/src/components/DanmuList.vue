@@ -75,7 +75,7 @@ defineExpose({ scrollToBottom })
 	margin-bottom: 0;
 	flex: 1;
 	overflow-y: auto;
-	padding-right: 8px;
+	padding: 16px 5px 48px 4px;
 	scrollbar-width: thin;
 	scrollbar-color: var(--scrollbar-thumb) transparent;
 }

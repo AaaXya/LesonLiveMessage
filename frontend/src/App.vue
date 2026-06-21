@@ -29,8 +29,8 @@ function closeSettings() {
 .app-root {
 	display: flex;
 	flex-direction: column;
-	min-height: 100vh;
+	height: 100vh;
 	width: 100%;
-	background: rgba(0, 0, 0, 0.15);
+	background: transparent;
 }
 </style>

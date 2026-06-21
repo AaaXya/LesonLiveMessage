@@ -53,9 +53,19 @@ def send_qq_group(msg: str, image: str = None, room_id=None):
         "Authorization": f"Bearer {NAPCAT_TOKEN}",
     }
 
-    response = requests.post(NAPCAT_URL, headers=headers, data=payload)
-    print(f"[{datetime.datetime.now()}] 发送结果:", response.text)
-    return response.json()
+    try:
+        response = requests.post(NAPCAT_URL, headers=headers, data=payload, timeout=10)
+        print(f"[{datetime.datetime.now()}] 发送结果:", response.text)
+        return response.json()
+    except requests.exceptions.ConnectionError:
+        print(f"[{datetime.datetime.now()}] NapCat 服务未启动，跳过 QQ 推送")
+        return None
+    except requests.exceptions.Timeout:
+        print(f"[{datetime.datetime.now()}] NapCat 请求超时，跳过 QQ 推送")
+        return None
+    except Exception as e:
+        print(f"[{datetime.datetime.now()}] QQ 推送失败：{e}")
+        return None
 
 
 # 只有直接运行 send.py 才会执行测试

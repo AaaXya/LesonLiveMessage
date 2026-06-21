@@ -2,6 +2,8 @@ from bilibili_api import live, sync
 import json
 import webview
 import os
+import asyncio
+import time
 from login import get_credential
 from danmu_parser import parse_bilibili_danmu, parse_gift
 from napcat_send import send_qq_group
@@ -149,23 +151,21 @@ state = 0
 
 async def live_start_handler(event):
     global state  # ✅ 必须加这行，声明要修改全局变量state
-    if features["enable_live_start"]:
-        state += 1
-        print("直播开始：", event)
-        if features["enable_qq_notification"]:
-            if state == 1:  # 只在第一次直播开始时发送通知，避免重复通知
-                from avatar_proxy import fetch_image_data_uri_uncompressed
+    state += 1
+    print("直播开始：", event)
+    if (
+        features["enable_qq_notification"] and state == 1
+    ):  # 只在第一次直播开始时发送通知，避免重复通知
+        from avatar_proxy import fetch_image_data_uri_uncompressed
 
-                cover_data_uri = (
-                    fetch_image_data_uri_uncompressed(room_cover)
-                    if room_cover
-                    else None
-                )
-                send_qq_group(
-                    f"直播开始了：\n{room_title}\nhttps://live.bilibili.com/{str(LESSONROOMID)}",
-                    cover_data_uri,
-                    LESSONROOMID,
-                )
+        cover_data_uri = (
+            fetch_image_data_uri_uncompressed(room_cover) if room_cover else None
+        )
+        send_qq_group(
+            f"直播开始了：\n{room_title}\nhttps://live.bilibili.com/{str(LESSONROOMID)}",
+            cover_data_uri,
+            LESSONROOMID,
+        )
 
 
 # 礼物处理器
@@ -180,7 +180,9 @@ def on_window_ready():
     import threading
 
     if room:
-        threading.Thread(target=lambda: sync(room.connect()), daemon=True).start()
+        threading.Thread(
+            target=lambda: sync(room_connect_loop(room)), daemon=True
+        ).start()
     else:
         print("警告：直播间监听未初始化")
 
@@ -188,6 +190,23 @@ def on_window_ready():
         threading.Thread(target=lambda: sync(sender.connect()), daemon=True).start()
     else:
         print("警告：弹幕发送器未初始化")
+
+
+async def room_connect_loop(room_obj):
+    """带自动重连的直播间连接循环"""
+    retry_delay = 3
+    max_delay = 60
+
+    while True:
+        try:
+            print(f"[{LESSONROOMID}] 正在连接直播间...")
+            await room_obj.connect()
+        except Exception as e:
+            print(f"[{LESSONROOMID}] 连接异常：{e}，{retry_delay} 秒后重连...")
+
+        print(f"[{LESSONROOMID}] 连接已断开，{retry_delay} 秒后自动重连...")
+        await asyncio.sleep(retry_delay)
+        retry_delay = min(retry_delay * 2, max_delay)
 
 
 async def init_sender_and_get_info():
