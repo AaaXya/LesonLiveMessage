@@ -25,6 +25,13 @@ def load_config():
             raise ValueError("config.json 格式错误，请检查语法")
 
 
+def resolve_frontend_index(base_path):
+    frontend_index = os.path.join(base_path, "frontend", "dist", "index.html")
+    if os.path.exists(frontend_index):
+        return frontend_index
+    return os.path.join(base_path, "index.html")
+
+
 config = load_config()
 LESSONROOMID = config["LESSONROOMID"]
 features = config["features"]
@@ -196,8 +203,9 @@ async def init_sender_and_get_info():
 
 
 if __name__ == "__main__":
+    base_path = os.path.dirname(os.path.abspath(__file__))
     # 获取有效的登录凭据
-    COOKIES_FILE = os.path.join(os.path.dirname(__file__), "cookies.json")
+    COOKIES_FILE = os.path.join(base_path, "cookies.json")
     credential = get_credential(COOKIES_FILE, LESSONROOMID)
 
     # 初始化监听器和发送器（优先使用有效的 credential）
@@ -234,7 +242,7 @@ if __name__ == "__main__":
 
     window = webview.create_window(
         title="B站弹幕姬",
-        url="index.html",
+        url=resolve_frontend_index(base_path),
         js_api=CloseApi(),
         width=400,
         height=700,
