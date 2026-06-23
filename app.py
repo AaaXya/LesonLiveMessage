@@ -5,7 +5,12 @@ import os
 import asyncio
 import time
 from login import get_credential
-from danmu_parser import parse_bilibili_danmu, parse_gift
+from danmu_parser import (
+    parse_bilibili_danmu,
+    parse_gift,
+    parse_super_chat,
+    parse_guard_buy,
+)
 from napcat_send import send_qq_group
 from danmu_db import save_danmu, is_full_bracket_text
 from frontend_config import FrontendConfigApi, apply_room_binding
@@ -41,9 +46,14 @@ class CloseApi(FrontendConfigApi):
         result = super().saveFrontendConfig(update)
         if result.get("ok"):
             global config, LESSONROOMID, features
+            old_room_id = LESSONROOMID
             config = load_config()
-            LESSONROOMID = config["LESSONROOMID"]
+            new_room_id = config["LESSONROOMID"]
+            LESSONROOMID = new_room_id
             features = config["features"]
+            if new_room_id != old_room_id:
+                result["restart_needed"] = True
+                result["message"] = f"直播间已切换至 {new_room_id}，请重启应用以生效"
         return result
 
     def closeWindow(self):
@@ -116,23 +126,24 @@ def send_to_frontend(data):
 
 # 弹幕消息处理器
 async def on_danmaku_handler(event):
-    if features["enable_danmaku"]:
-        parsed = parse_bilibili_danmu(event)
-        if isinstance(parsed, dict):
-            parsed_to_log = {k: v for k, v in parsed.items() if k != "avatar_url"}
-        else:
-            parsed_to_log = parsed
-        print(parsed_to_log)
-        content = parsed_to_log["content"]
-        if not is_full_bracket_text(content):
-            save_danmu(parsed, LESSONROOMID)  # 存储到当前直播间数据库
-        send_to_frontend(parsed)
+    parsed = parse_bilibili_danmu(event)
+    if isinstance(parsed, dict):
+        parsed_to_log = {k: v for k, v in parsed.items() if k != "avatar_url"}
+    else:
+        parsed_to_log = parsed
+    print(parsed_to_log)
+    content = parsed_to_log["content"]
+    if not is_full_bracket_text(content):
+        save_danmu(parsed, LESSONROOMID)
+    send_to_frontend(parsed)
 
 
 # 大航海续费处理器
 async def on_guard_buy_handler(event):
-    if features["enable_guard_buy"]:
-        print("大航海续费：", event)
+    parsed = parse_guard_buy(event)
+    if parsed:
+        print("大航海续费：", parsed)
+        send_to_frontend(parsed)
 
 
 # 事件格式示例：
@@ -140,8 +151,10 @@ async def on_guard_buy_handler(event):
 
 
 async def on_super_chat_handler(event):
-    if features["enable_super_chat"]:
-        print("超级留言：", event)
+    parsed = parse_super_chat(event)
+    if parsed:
+        print("超级留言：", {k: v for k, v in parsed.items() if k != "avatar_url"})
+        send_to_frontend(parsed)
 
 
 # 超级留言： {'room_display_id': 1879006019, 'room_real_id': 1879006019, 'type': 'SUPER_CHAT_MESSAGE', 'data': {'cmd': 'SUPER_CHAT_MESSAGE', 'data': {'background_bottom_color': '#2A60B2', 'background_color': '#EDF5FF', 'background_color_end': '#405D85', 'background_color_start': '#3171D2', 'background_icon': '', 'background_image': '', 'background_price_color': '#7497CD', 'color_point': 0.7, 'dmscore': 714, 'end_time': 1781012711, 'gift': {'gift_id': 12000, 'gift_name': '醒目留言', 'num': 1}, 'group_medal': {'is_lighted': 0, 'medal_id': 0, 'name': ''}, 'id': 16735005, 'is_mystery': False, 'is_ranked': 0, 'is_send_audit': 0, 'medal_info': {'anchor_roomid': 1879006019, 'anchor_uname': '酥柔柔', 'guard_level': 3, 'icon_id': 0, 'is_lighted': 1, 'medal_color': '#06154c', 'medal_color_border': 6809855, 'medal_color_end': 6850801, 'medal_color_start': 398668, 'medal_level': 27, 'medal_name': '粉丝团', 'special': '', 'target_id': 3546698381003418}, 'message': '测试', 'message_font_color': '#A3F6FF', 'message_trans': '', 'price': 2, 'rate': 1000, 'start_time': 1781012706, 'time': 5, 'token': '827B2131', 'trans_mark': 0, 'ts': 1781012706, 'uid': 388151398, 'uinfo': {'base': {'face': 'https://i1.hdslb.com/bfs/face/9dfc549c7d6809eafa93b15b97f9c05a7055752d.jpg', 'is_mystery': False, 'name': '安安安小雅w', 'name_color': 0, 'name_color_str': '#00D1F1', 'official_info': {'desc': '', 'role': 0, 'title': '', 'type': -1}, 'origin_info': {'face': 'https://i1.hdslb.com/bfs/face/9dfc549c7d6809eafa93b15b97f9c05a7055752d.jpg', 'name': '安安安小雅w'}, 'risk_ctrl_info': None}, 'guard': {'expired_str': '2026-06-24 23:59:59', 'level': 3}, 'guard_leader': None, 'medal': {'color': 398668, 'color_border': 6809855, 'color_end': 6850801, 'color_start': 398668, 'guard_icon': 'https://i0.hdslb.com/bfs/live/48360c8f3b7de8031e86ff1ef4a2dfc0ec2a61c2.png', 'guard_level': 3, 'honor_icon': '', 'id': 0, 'is_light': 1, 'level': 27, 'name': '粉丝团', 'ruid': 3546698381003418, 'score': 13918, 'typ': 0, 'user_receive_count': 0, 'v2_medal_color_border': '#5FC7F4', 'v2_medal_color_end': '#3FB4F699', 'v2_medal_color_level': '#3FB4F6E6', 'v2_medal_color_start': '#3FB4F699', 'v2_medal_color_text': '#FFFFFF'}, 'title': {'old_title_css_id': '', 'title_css_id': ''}, 'uhead_frame': None, 'uid': 388151398, 'wealth': None}, 'user_info': {'face': 'https://i1.hdslb.com/bfs/face/9dfc549c7d6809eafa93b15b97f9c05a7055752d.jpg', 'face_frame': 'https://i0.hdslb.com/bfs/live/80f732943cc3367029df65e267960d56736a82ee.png', 'guard_level': 3, 'is_main_vip': 0, 'is_svip': 0, 'is_vip': 0, 'level_color': '#61c05a', 'manager': 0, 'name_color': '#00D1F1', 'title': '', 'uname': '安安安小雅w', 'user_level': 20}}, 'is_report': True, 'msg_id': '96950106411035137:1000:1000', 'p_is_ack': True, 'p_msg_type': 1, 'send_time': 1781012706457}}
@@ -170,10 +183,9 @@ async def live_start_handler(event):
 
 # 礼物处理器
 async def on_gift_handler(event):
-    if features["enable_gift"]:
-        parsed_gift = parse_gift(event)
-        print("礼物：", parsed_gift)
-        send_to_frontend(parsed_gift)
+    parsed_gift = parse_gift(event)
+    print("礼物：", parsed_gift)
+    send_to_frontend(parsed_gift)
 
 
 def on_window_ready():

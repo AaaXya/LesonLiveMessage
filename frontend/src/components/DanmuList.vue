@@ -1,18 +1,20 @@
 <script setup>
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { danmuItems } from '../stores/danmu'
 import DanmuItem from './DanmuItem.vue'
 import GiftItem from './GiftItem.vue'
 import GuardItem from './GuardItem.vue'
+import SuperChatItem from './SuperChatItem.vue'
 
 const listRef = ref(null)
 const showScrollButton = ref(false)
+let userScrolled = false
+let resumeTimer = null
+const RESUME_DELAY = 3000
 
 function isAtBottom() {
 	const list = listRef.value
-	if (!list) {
-		return true
-	}
+	if (!list) return true
 	return list.scrollTop + list.clientHeight >= list.scrollHeight - 10
 }
 
@@ -22,20 +24,39 @@ function checkScrollBottom() {
 
 function scrollToBottom() {
 	const list = listRef.value
-	if (!list) {
-		return
-	}
+	if (!list) return
 	list.scrollTop = list.scrollHeight
 	showScrollButton.value = false
+	userScrolled = false
+	if (resumeTimer) {
+		clearTimeout(resumeTimer)
+		resumeTimer = null
+	}
+}
+
+function onUserScroll() {
+	if (isAtBottom()) {
+		userScrolled = false
+		return
+	}
+	// 用户上滚：标记暂停，3 秒后恢复自动滚动
+	if (!userScrolled) {
+		userScrolled = true
+		if (resumeTimer) clearTimeout(resumeTimer)
+		resumeTimer = setTimeout(() => {
+			userScrolled = false
+			scrollToBottom()
+		}, RESUME_DELAY)
+	}
+	checkScrollBottom()
 }
 
 watch(
 	danmuItems,
 	async () => {
 		await nextTick()
-		const list = listRef.value
-		if (list) {
-			list.scrollTop = list.scrollHeight
+		if (!userScrolled) {
+			scrollToBottom()
 		}
 		checkScrollBottom()
 	},
@@ -47,11 +68,16 @@ onMounted(async () => {
 	scrollToBottom()
 })
 
+onUnmounted(() => {
+	if (resumeTimer) clearTimeout(resumeTimer)
+})
+
 defineExpose({ scrollToBottom })
 </script>
 
 <template>
-	<div ref="listRef" class="danmu-list" @scroll="checkScrollBottom">
+	<SuperChatItem />
+	<div ref="listRef" class="danmu-list" @scroll="onUserScroll">
 		<template v-for="(item, index) in danmuItems" :key="index">
 			<DanmuItem v-if="item.type === 'danmu'" :data="item" />
 			<GiftItem v-else-if="item.type === 'gift'" :data="item" />
@@ -75,7 +101,7 @@ defineExpose({ scrollToBottom })
 	margin-bottom: 0;
 	flex: 1;
 	overflow-y: auto;
-	padding: 16px 5px 48px 4px;
+	padding: 16px 5px 58px 4px;
 	scrollbar-width: thin;
 	scrollbar-color: var(--scrollbar-thumb) transparent;
 }

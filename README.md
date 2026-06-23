@@ -6,7 +6,9 @@
 
 - **弹幕实时显示** — 监听 Bilibili 直播间弹幕、礼物、舰队（大航海）、SC（醒目留言），以透明悬浮窗形式展示
 - **弹幕发送** — 支持在桌面端直接发送弹幕到直播间
-- **QQ 群推送** — 通过 [NapCat](https://github.com/NapNeko/NapCatQQ) 将直播事件（开播、弹幕、礼物等）实时转发到指定 QQ 群
+- **SC 醒目留言置顶** — SC 消息固定在页面顶部，带倒计时进度条，不随弹幕滚动
+- **QQ 群推送** — 通过 [NapCat](https://github.com/NapNeko/NapCatQQ) 将直播事件（开播）实时转发到指定 QQ 群
+- **自动重连** — 直播间连接断开后指数退避自动重连，无需手动重启
 - **多房间绑定** — 每个直播间可独立绑定不同的 QQ 群，互不干扰
 - **头像代理压缩** — 自动拉取用户头像并压缩，减少前端渲染压力
 - **主题系统** — 内置多套配色主题（默认亮彩、深海青蓝、樱粉等），支持自定义
@@ -27,9 +29,9 @@
 
 ```
 runlivetest/
-├── app.py                  # 主入口，WebView 窗口 + 弹幕事件处理
+├── app.py                  # 主入口，WebView 窗口 + 弹幕事件处理 + 自动重连
 ├── login.py                # B站登录管理（扫码/Cookie）
-├── danmu_parser.py         # 弹幕/礼物/舰队数据解析
+├── danmu_parser.py         # 弹幕/礼物/舰队/SC 数据解析
 ├── danmu_db.py             # SQLite 弹幕存储
 ├── napcat_send.py          # QQ 群消息推送（NapCat）
 ├── avatar_proxy.py         # 头像拉取与压缩
@@ -38,7 +40,7 @@ runlivetest/
 ├── config.json             # 主配置文件
 ├── theme.json              # 主题预设配色
 ├── cookies.json            # B站 Cookie（自动生成）
-├── index.html              # 前端入口（开发回退用）
+├── package.json            # 根构建脚本（npm run build）
 ├── data/                   # 弹幕数据库存放目录
 └── frontend/               # Vue 3 前端项目
     ├── package.json
@@ -47,24 +49,23 @@ runlivetest/
         ├── App.vue
         ├── main.js
         ├── constants.js
-        ├── api/bridge.js           # 前后端桥接通信
+        ├── api/bridge.js              # 前后端桥接通信
         ├── components/
-        │   ├── DanmuList.vue       # 弹幕列表
-        │   ├── DanmuItem.vue       # 单条弹幕
-        │   ├── DanmuInput.vue      # 弹幕输入框
-        │   ├── GiftItem.vue        # 礼物消息
-        │   ├── GuardItem.vue       # 舰队消息
-        │   ├── SettingsPanel.vue   # 设置面板
-        │   └── WindowControls.vue  # 窗口控制按钮
+        │   ├── DanmuList.vue          # 弹幕列表（含滚动按钮）
+        │   ├── DanmuItem.vue          # 单条弹幕
+        │   ├── DanmuInput.vue         # 弹幕输入框 + 发送按钮
+        │   ├── GiftItem.vue           # 礼物消息
+        │   ├── GuardItem.vue          # 舰队消息
+        │   ├── SuperChatItem.vue      # SC 醒目留言（置顶+倒计时）
+        │   ├── SettingsPanel.vue      # 设置面板
+        │   └── WindowControls.vue     # 窗口控制按钮
         ├── composables/
         │   ├── useSettings.js
         │   └── useTheme.js
         ├── stores/
-        │   └── danmu.js            # 弹幕状态管理
+        │   └── danmu.js               # 弹幕/SC 状态管理
         └── styles/
-            ├── base.css
-            ├── danmu.css
-            └── settings.css
+            └── base.css               # 全局 CSS 变量 + 滚动条 + reset
 ```
 
 ## 🚀 快速开始
@@ -97,6 +98,8 @@ npm run dev      # 浏览器预览（无 pywebview API）
 npm run build    # 构建到 frontend/dist，供 app.py 加载
 cd ..
 ```
+
+> 后续只需在项目根目录运行 `npm run build` 即可构建前端。
 
 ### 4. 配置
 
@@ -152,6 +155,15 @@ python app.py
 ## 🎨 主题配置
 
 `theme.json` 中预设了多套主题，可在 `config.json` 的 `frontend.theme` 中切换。也可在 `theme.json` 的 `presets` 中添加自定义主题。
+
+## 🏗 架构说明
+
+所有前端样式均以 Vue `<style scoped>` 形式写入各自组件，不再使用全局 CSS 文件。仅 `base.css` 保留 CSS 变量定义和全局 reset。
+
+后端事件处理器通过 `send_to_frontend()` 向 WebView 注入 `addDanmu(data)` 调用，前端 `stores/danmu.js` 根据 `data.type` 分流：
+
+- `danmu` / `gift` / `GUARD_BUY` → 追加到滚动列表
+- `super_chat` → 存入 `superChat` ref，由 `SuperChatItem.vue` 独立渲染在置顶位置
 
 ## 🗄 弹幕数据库
 

@@ -1,7 +1,6 @@
 import json
 import os
 
-
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(BASE_PATH, "config.json")
 THEME_PATH = os.path.join(BASE_PATH, "theme.json")
@@ -77,10 +76,12 @@ def save_app_config(config):
 def get_theme_options(theme_config):
     options = []
     for key, value in theme_config.get("presets", {}).items():
-        options.append({
-            "value": key,
-            "label": value.get("name", key) if isinstance(value, dict) else key,
-        })
+        options.append(
+            {
+                "value": key,
+                "label": value.get("name", key) if isinstance(value, dict) else key,
+            }
+        )
     return options
 
 
@@ -107,7 +108,9 @@ def normalize_config_update(current_config, update):
     next_config = dict(current_config)
 
     if "LESSONROOMID" in update:
-        next_config["LESSONROOMID"] = int(update["LESSONROOMID"])
+        room_id_str = str(update["LESSONROOMID"]).strip()
+        if room_id_str.isdigit():
+            next_config["LESSONROOMID"] = int(room_id_str)
 
     frontend = dict(next_config.get("frontend", {}))
     incoming_frontend = update.get("frontend", {})
@@ -132,7 +135,11 @@ def normalize_config_update(current_config, update):
     group_id = str(update.get("GROUPID", current_binding.get("GROUPID", ""))).strip()
     current_binding["GROUPID"] = group_id
     current_binding["enable_qq_notification"] = bool(
-        group_id and update.get("enable_qq_notification", current_binding.get("enable_qq_notification", False))
+        group_id
+        and update.get(
+            "enable_qq_notification",
+            current_binding.get("enable_qq_notification", False),
+        )
     )
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
