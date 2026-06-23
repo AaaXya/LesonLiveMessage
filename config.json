@@ -15,6 +15,7 @@
     "enable_super_chat": true,
     "enable_live_start": true,
     "enable_gift": true,
+    "enable_danmu_db": true,
     "web_debug": false
   }
 }

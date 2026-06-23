@@ -10,6 +10,7 @@ FEATURE_KEYS = (
     "enable_super_chat",
     "enable_live_start",
     "enable_gift",
+    "enable_danmu_db",
     "web_debug",
 )
 

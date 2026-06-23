@@ -50,9 +50,10 @@ const priceText = computed(() => {
 	padding: 10px 12px;
 	border-radius: 10px;
 	margin-bottom: 8px;
-	background: linear-gradient(135deg, rgba(255, 180, 30, 0.16), rgba(255, 140, 20, 0.1));
-	border: 1px solid rgba(255, 180, 40, 0.2);
-	color: var(--text-primary);
+	background: linear-gradient(135deg, rgba(255, 180, 30, 0.28), rgba(255, 140, 20, 0.18));
+	border: 1px solid rgba(255, 180, 40, 0.35);
+	color: #ffffff;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 	animation: giftIn 0.35s ease;
 }
 
@@ -60,6 +61,7 @@ const priceText = computed(() => {
 	font-size: 1.4rem;
 	flex-shrink: 0;
 	margin-top: 2px;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
 .gift-body {
@@ -77,38 +79,44 @@ const priceText = computed(() => {
 }
 
 .gift-medal {
-	color: var(--gift-medal-text);
-	font-weight: 600;
+	color: #ffcc00;
+	font-weight: 700;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .name {
 	color: var(--name-text);
-	font-weight: 600;
+	font-weight: 700;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .gift-tag {
 	font-size: 0.75rem;
 	padding: 1px 7px;
 	border-radius: 999px;
-	background: rgba(255, 190, 50, 0.25);
-	color: #ffb830;
-	font-weight: 600;
+	background: rgba(255, 190, 50, 0.35);
+	color: #fff3c4;
+	font-weight: 700;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .gift-content {
 	font-size: 0.9rem;
 	line-height: 1.6;
-	color: var(--text-primary);
+	color: #ffffff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .gift-content strong {
-	color: #ffcc33;
+	color: #fff3c4;
+	font-weight: 700;
 }
 
 .gift-price {
 	margin-left: 6px;
 	font-size: 0.82rem;
-	color: var(--text-muted);
+	color: rgba(255, 255, 255, 0.9);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes giftIn {

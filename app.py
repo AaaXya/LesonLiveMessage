@@ -3,7 +3,6 @@ import json
 import webview
 import os
 import asyncio
-import time
 from login import get_credential
 from danmu_parser import (
     parse_bilibili_danmu,
@@ -133,7 +132,7 @@ async def on_danmaku_handler(event):
         parsed_to_log = parsed
     print(parsed_to_log)
     content = parsed_to_log["content"]
-    if not is_full_bracket_text(content):
+    if features.get("enable_danmu_db") and not is_full_bracket_text(content):
         save_danmu(parsed, LESSONROOMID)
     send_to_frontend(parsed)
 
@@ -154,6 +153,8 @@ async def on_super_chat_handler(event):
     parsed = parse_super_chat(event)
     if parsed:
         print("超级留言：", {k: v for k, v in parsed.items() if k != "avatar_url"})
+        if features.get("enable_danmu_db"):
+            save_danmu(parsed, LESSONROOMID)
         send_to_frontend(parsed)
 
 
@@ -199,7 +200,7 @@ def on_window_ready():
         print("警告：直播间监听未初始化")
 
     if sender:
-        threading.Thread(target=lambda: sync(sender.connect()), daemon=True).start()
+        pass  # LiveRoom 无需持久连接，init_sender_and_get_info() 已在初始化时调用
     else:
         print("警告：弹幕发送器未初始化")
 

@@ -28,7 +28,7 @@
         "guardText": "#ffffff",
         "medalText": "#ff69b4",
         "nameText": "#00eaff",
-        "giftMedalText": "#990000",
+        "giftMedalText": "#ffcc00",
         "shadow": "rgba(0, 0, 0, 0.18)",
         "bubbleShadow": "rgba(0, 0, 0, 0.15)"
       }
@@ -60,7 +60,7 @@
         "guardText": "#ffffff",
         "medalText": "#ffc2e1",
         "nameText": "#69f2ff",
-        "giftMedalText": "#7a2700",
+        "giftMedalText": "#ffd740",
         "shadow": "rgba(0, 8, 14, 0.24)",
         "bubbleShadow": "rgba(0, 8, 14, 0.2)"
       }
@@ -92,7 +92,7 @@
         "guardText": "#ffffff",
         "medalText": "#ffd166",
         "nameText": "#ffacd0",
-        "giftMedalText": "#8a1d3f",
+        "giftMedalText": "#ffab91",
         "shadow": "rgba(22, 4, 14, 0.24)",
         "bubbleShadow": "rgba(22, 4, 14, 0.2)"
       }
@@ -124,9 +124,41 @@
         "guardText": "#ffffff",
         "medalText": "#ffe08a",
         "nameText": "#9ff0b2",
-        "giftMedalText": "#704000",
+        "giftMedalText": "#ffd740",
         "shadow": "rgba(4, 18, 11, 0.24)",
         "bubbleShadow": "rgba(4, 18, 11, 0.2)"
+      }
+    },
+    "dark": {
+      "name": "极暗之夜",
+      "colors": {
+        "pageBg": "transparent",
+        "textPrimary": "#d0d0d0",
+        "textMuted": "rgba(208, 208, 208, 0.7)",
+        "textPlaceholder": "rgba(208, 208, 208, 0.45)",
+        "surface": "rgba(10, 10, 12, 0.75)",
+        "surfaceStrong": "rgba(6, 6, 8, 0.88)",
+        "surfaceActive": "rgba(18, 18, 22, 0.82)",
+        "surfaceHover": "rgba(255, 255, 255, 0.06)",
+        "surfaceSoft": "rgba(255, 255, 255, 0.04)",
+        "border": "rgba(255, 255, 255, 0.08)",
+        "borderStrong": "rgba(255, 255, 255, 0.10)",
+        "scrollbarThumb": "rgba(255, 255, 255, 0.12)",
+        "buttonBg": "rgba(18, 18, 22, 0.6)",
+        "closeBg": "rgba(180, 50, 50, 0.85)",
+        "closeHoverBg": "rgba(200, 60, 60, 1)",
+        "sendGradient": "linear-gradient(135deg, #555, #3a3a3a)",
+        "sendText": "#cccccc",
+        "bubbleGradient": "linear-gradient(135deg, rgba(60, 60, 68, 0.96), rgba(42, 42, 50, 0.95))",
+        "giftBg": "rgba(80, 72, 40, 0.8)",
+        "giftText": "#d0d0d0",
+        "guardBg": "rgba(30, 50, 80, 0.8)",
+        "guardText": "#d0d0d0",
+        "medalText": "#888888",
+        "nameText": "#aaaaaa",
+        "giftMedalText": "#999999",
+        "shadow": "rgba(0, 0, 0, 0.4)",
+        "bubbleShadow": "rgba(0, 0, 0, 0.35)"
       }
     }
   }

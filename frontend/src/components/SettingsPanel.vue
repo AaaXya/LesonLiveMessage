@@ -27,7 +27,7 @@ const {
 } = useSettings(toRef(props, 'visible'))
 
 const featuresBeforeLiveStart = ['enable_danmaku', 'enable_guard_buy', 'enable_super_chat']
-const featuresAfterLiveStart = ['enable_gift', 'web_debug']
+const featuresAfterLiveStart = ['enable_gift', 'enable_danmu_db', 'web_debug']
 
 function handleOverlayClick(event) {
 	if (event.target === event.currentTarget) {

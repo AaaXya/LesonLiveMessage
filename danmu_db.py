@@ -32,9 +32,15 @@ def init_db(room_id):
             username TEXT,
             content TEXT,
             send_time TEXT,
-            uid INTEGER
+            uid INTEGER,
+            type TEXT DEFAULT 'danmu'
         )
         """)
+    # 兼容旧表：没有 type 列则补上
+    try:
+        cursor.execute("ALTER TABLE danmu ADD COLUMN type TEXT DEFAULT 'danmu'")
+    except sqlite3.OperationalError:
+        pass
     # 兼容旧表：没有 uid 列则补上
     try:
         cursor.execute("ALTER TABLE danmu ADD COLUMN uid INTEGER")
@@ -49,17 +55,29 @@ def save_danmu(danmu_dict: dict, room_id):
     init_db(room_id)
     conn = sqlite3.connect(get_room_db_file(room_id))
     cursor = conn.cursor()
+
+    item_type = danmu_dict.get("type", "danmu")
+    username = danmu_dict.get("username", "")
+    uid = danmu_dict.get("uid")
+
+    if item_type == "super_chat":
+        content = (
+            f"SC | ¥{danmu_dict.get('price', 0)} | {danmu_dict.get('message', '')}"
+        )
+    else:
+        content = danmu_dict.get("content", "")
+
     cursor.execute(
         """
-        INSERT INTO danmu (username, content, send_time, uid)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO danmu (username, content, send_time, uid, type)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (danmu_dict["username"], danmu_dict["content"], now, danmu_dict.get("uid")),
+        (username, content, now, uid, item_type),
     )
     conn.commit()
     conn.close()
     # 回填同名用户的历史 uid
-    backfill_uid(room_id, danmu_dict.get("username"), danmu_dict.get("uid"))
+    backfill_uid(room_id, username, uid)
 
 
 def backfill_uid(room_id, username, uid):
