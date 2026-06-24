@@ -45,7 +45,6 @@ function onUserScroll() {
 		if (resumeTimer) clearTimeout(resumeTimer)
 		resumeTimer = setTimeout(() => {
 			userScrolled = false
-			scrollToBottom()
 		}, RESUME_DELAY)
 	}
 	checkScrollBottom()
