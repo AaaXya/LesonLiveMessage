@@ -6,11 +6,36 @@ import sqlite3
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 LEGACY_DB_FILE = os.path.join(SCRIPT_DIR, "danmu.db")
-BRACKET_PATTERN = re.compile(r"^\[.*\]$")
+
+# 过滤词列表：
+#   str        → 完全匹配（大小写敏感）
+#   re.Pattern → 正则完全匹配 re.fullmatch()
+FILTER_WORDS = [
+    re.compile(r"^\[.*\]$"),  # 纯括号文本
+    # "打卡",
+    # "签到",
+    # re.compile(r"\d{5,}"),
+    "钓鱼",
+    "猫猫冲撞",
+    "iOS端可关注公众号哗哩哗哩直播姬充值~",
+    "有一种陪伴叫: 加入大航海~",
+    "小礼物和弹幕都是对主播的支持哦，比心心~",
+    "你已经是成熟的观众了，该学会自己上船了~",
+]
 
 
-def is_full_bracket_text(text: str) -> bool:
-    return bool(BRACKET_PATTERN.fullmatch(text))
+def _should_filter_danmu(content: str) -> bool:
+    """检查弹幕内容是否应被过滤（字符串子串匹配 / 正则搜索）"""
+    if not FILTER_WORDS:
+        return False
+    for entry in FILTER_WORDS:
+        if isinstance(entry, re.Pattern):
+            if entry.fullmatch(content):
+                return True
+        elif isinstance(entry, str):
+            if entry == content:
+                return True
+    return False
 
 
 def get_room_db_file(room_id, ensure_dir=True) -> str:
@@ -52,7 +77,8 @@ def init_db(room_id):
 
 def save_danmu(danmu_dict: dict, room_id):
     now = datetime.datetime.now().isoformat()
-    init_db(room_id)
+    # 直播间不存在则创建
+    # init_db(room_id)
     conn = sqlite3.connect(get_room_db_file(room_id))
     cursor = conn.cursor()
 
@@ -67,6 +93,11 @@ def save_danmu(danmu_dict: dict, room_id):
     else:
         content = danmu_dict.get("content", "")
 
+    # 过滤：括号纯文本 或 命中过滤词
+    if _should_filter_danmu(content):
+        conn.close()
+        return
+
     cursor.execute(
         """
         INSERT INTO danmu (username, content, send_time, uid, type)
@@ -77,7 +108,7 @@ def save_danmu(danmu_dict: dict, room_id):
     conn.commit()
     conn.close()
     # 回填同名用户的历史 uid
-    backfill_uid(room_id, username, uid)
+    # backfill_uid(room_id, username, uid)
 
 
 def backfill_uid(room_id, username, uid):

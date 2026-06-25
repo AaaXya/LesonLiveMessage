@@ -11,7 +11,7 @@ from danmu_parser import (
     parse_guard_buy,
 )
 from napcat_send import send_qq_group
-from danmu_db import save_danmu, is_full_bracket_text
+from danmu_db import save_danmu
 from frontend_config import FrontendConfigApi, apply_room_binding
 
 
@@ -131,8 +131,7 @@ async def on_danmaku_handler(event):
     else:
         parsed_to_log = parsed
     print(parsed_to_log)
-    content = parsed_to_log["content"]
-    if features.get("enable_danmu_db") and not is_full_bracket_text(content):
+    if features.get("enable_danmu_db"):
         save_danmu(parsed, LESSONROOMID)
     send_to_frontend(parsed)
 
