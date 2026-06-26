@@ -1,9 +1,10 @@
 import json
 import os
 
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(BASE_PATH, "config.json")
-THEME_PATH = os.path.join(BASE_PATH, "theme.json")
+from . import PROJECT_ROOT
+
+CONFIG_PATH = os.path.join(PROJECT_ROOT, "config.json")
+THEME_PATH = os.path.join(PROJECT_ROOT, "theme.json")
 FEATURE_KEYS = (
     "enable_danmaku",
     "enable_guard_buy",

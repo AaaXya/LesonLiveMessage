@@ -3,9 +3,10 @@ import os
 import re
 import sqlite3
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, "data")
-LEGACY_DB_FILE = os.path.join(SCRIPT_DIR, "danmu.db")
+from . import PROJECT_ROOT
+
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+LEGACY_DB_FILE = os.path.join(PROJECT_ROOT, "danmu.db")
 
 # 过滤词列表：
 #   str        → 完全匹配（大小写敏感）

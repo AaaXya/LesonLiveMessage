@@ -1,8 +1,12 @@
 import argparse
 import os
+import sys
 import sqlite3
 
-from danmu_db import LEGACY_DB_FILE, get_room_db_file, init_db
+# 确保项目根目录在 sys.path 中，以便直接运行此脚本
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.danmu_db import LEGACY_DB_FILE, get_room_db_file, init_db
 
 
 def count_rows(db_file):
@@ -63,7 +67,10 @@ def migrate(source, room_id, append=False, dry_run=False):
             INSERT INTO danmu (id, username, content, send_time)
             VALUES (?, ?, ?, ?)
             """,
-            [(row["id"], row["username"], row["content"], row["send_time"]) for row in rows],
+            [
+                (row["id"], row["username"], row["content"], row["send_time"])
+                for row in rows
+            ],
         )
     else:
         cursor.executemany(
@@ -80,11 +87,25 @@ def migrate(source, room_id, append=False, dry_run=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Migrate old danmu.db to a room-specific database")
+    parser = argparse.ArgumentParser(
+        description="Migrate old danmu.db to a room-specific database"
+    )
     parser.add_argument("room_id", help="Room ID that the old rows belong to")
-    parser.add_argument("--source", default=LEGACY_DB_FILE, help="Old database path, defaults to ./danmu.db")
-    parser.add_argument("--append", action="store_true", help="Append rows when target database is not empty")
-    parser.add_argument("--dry-run", action="store_true", help="Show migration plan without writing data")
+    parser.add_argument(
+        "--source",
+        default=LEGACY_DB_FILE,
+        help="Old database path, defaults to ./danmu.db",
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Append rows when target database is not empty",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show migration plan without writing data",
+    )
     args = parser.parse_args()
 
     migrate(args.source, args.room_id, append=args.append, dry_run=args.dry_run)

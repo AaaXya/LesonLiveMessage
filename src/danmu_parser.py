@@ -1,6 +1,6 @@
 import json
 
-from avatar_proxy import fetch_image_data_uri
+from .avatar_proxy import fetch_image_data_uri
 
 
 def _safe_list(lst, index, default):

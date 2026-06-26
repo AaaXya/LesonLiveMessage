@@ -15,8 +15,8 @@ initThemeLoader()
 
 createApp(App).mount('#app')
 
-// ===== Web 模式：轮询后端事件 =====
-if (!window.pywebview) {
+// ===== Web 模式（?mode=web）：轮询后端事件 =====
+if (new URLSearchParams(location.search).get('mode') === 'web') {
 	console.log('[web mode] 启动事件轮询...')
 	function poll() {
 		pollEvents()

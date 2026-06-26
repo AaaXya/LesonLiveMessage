@@ -27,46 +27,53 @@
 
 ## 📁 项目结构
 
-```
+````
 runlivetest/
-├── app.py                  # 主入口，WebView 窗口 + 弹幕事件处理 + 自动重连
-├── login.py                # B站登录管理（扫码/Cookie）
-├── danmu_parser.py         # 弹幕/礼物/舰队/SC 数据解析
-├── danmu_db.py             # SQLite 弹幕存储
-├── napcat_send.py          # QQ 群消息推送（NapCat）
-├── avatar_proxy.py         # 头像拉取与压缩
-├── frontend_config.py      # 前端配置 API（主题/房间绑定）
-├── migrate_danmu_db.py     # 弹幕数据库迁移工具
+├── app.py                  # 入口：初始化 → 凭据 → 分支运行（webview / web）
+├── src/                    # 核心库
+│   ├── __init__.py         # 包初始化 + PROJECT_ROOT 常量
+│   ├── app_context.py      # 共享状态容器（config / room / sender / 事件队列）
+│   ├── live_events.py      # B站直播间事件处理器 + 自动重连
+│   ├── api.py              # CloseApi：前后端桥接层（webview JS + HTTP 共用）
+│   ├── web_server.py       # Web 模式 HTTP 服务器（静态文件 + REST API）
+│   ├── frontend_config.py  # 配置读写、主题管理、房间绑定
+│   ├── login.py            # B站登录管理（扫码/Cookie）
+│   ├── danmu_parser.py     # 弹幕/礼物/舰队/SC 数据解析
+│   ├── danmu_db.py         # SQLite 弹幕存储（按房间分库）
+│   ├── napcat_send.py      # QQ 群消息推送（NapCat）
+│   └── avatar_proxy.py     # 头像拉取与压缩
+├── scripts/                # 工具脚本
+│   └── migrate_danmu_db.py # 弹幕数据库迁移工具
+├── frontend/               # Vue 3 前端项目
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.vue
+│       ├── main.js
+│       ├── constants.js
+│       ├── api/bridge.js              # 前后端桥接通信
+│       ├── components/
+│       │   ├── DanmuList.vue          # 弹幕列表（含滚动按钮）
+│       │   ├── DanmuItem.vue          # 单条弹幕
+│       │   ├── DanmuInput.vue         # 弹幕输入框 + 发送按钮
+│       │   ├── GiftItem.vue           # 礼物消息
+│       │   ├── GuardItem.vue          # 舰队消息
+│       │   ├── SuperChatItem.vue      # SC 醒目留言（置顶+倒计时）
+│       │   ├── SettingsPanel.vue      # 设置面板
+│       │   └── WindowControls.vue     # 窗口控制按钮
+│       ├── composables/
+│       │   ├── useSettings.js
+│       │   └── useTheme.js
+│       ├── stores/
+│       │   └── danmu.js               # 弹幕/SC 状态管理
+│       └── styles/
+│           └── base.css               # 全局 CSS 变量 + 滚动条 + reset
+├── data/                   # 弹幕数据库存放目录
 ├── config.json             # 主配置文件
 ├── theme.json              # 主题预设配色
 ├── cookies.json            # B站 Cookie（自动生成）
 ├── package.json            # 根构建脚本（npm run build）
-├── data/                   # 弹幕数据库存放目录
-└── frontend/               # Vue 3 前端项目
-    ├── package.json
-    ├── vite.config.js
-    └── src/
-        ├── App.vue
-        ├── main.js
-        ├── constants.js
-        ├── api/bridge.js              # 前后端桥接通信
-        ├── components/
-        │   ├── DanmuList.vue          # 弹幕列表（含滚动按钮）
-        │   ├── DanmuItem.vue          # 单条弹幕
-        │   ├── DanmuInput.vue         # 弹幕输入框 + 发送按钮
-        │   ├── GiftItem.vue           # 礼物消息
-        │   ├── GuardItem.vue          # 舰队消息
-        │   ├── SuperChatItem.vue      # SC 醒目留言（置顶+倒计时）
-        │   ├── SettingsPanel.vue      # 设置面板
-        │   └── WindowControls.vue     # 窗口控制按钮
-        ├── composables/
-        │   ├── useSettings.js
-        │   └── useTheme.js
-        ├── stores/
-        │   └── danmu.js               # 弹幕/SC 状态管理
-        └── styles/
-            └── base.css               # 全局 CSS 变量 + 滚动条 + reset
-```
+└── README.md
 
 ## 🚀 快速开始
 
@@ -81,7 +88,7 @@ runlivetest/
 ```bash
 git clone <your-repo-url>
 cd runlivetest
-```
+````
 
 ### 2. 安装 Python 依赖
 
@@ -123,21 +130,24 @@ cd ..
 		"enable_super_chat": true,
 		"enable_live_start": true,
 		"enable_gift": true,
-		"web_debug": false
+		"enable_danmu_db": true,
+		"web_debug": false,
+		"open_mode": "webview"
 	}
 }
 ```
 
-| 字段             | 说明                                           |
-| ---------------- | ---------------------------------------------- |
-| `LESSONROOMID`   | B站直播间 ID                                   |
-| `room_bindings`  | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号       |
-| `frontend.theme` | 主题名，可选 `default` / `ocean` / `sakura` 等 |
-| `features`       | 功能开关，控制各类消息的显示和推送             |
+| 字段                 | 说明                                                      |
+| -------------------- | --------------------------------------------------------- |
+| `LESSONROOMID`       | B站直播间 ID                                              |
+| `room_bindings`      | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号                  |
+| `frontend.theme`     | 主题名，可选 `default` / `ocean` / `sakura` 等            |
+| `features`           | 功能开关，控制各类消息的显示和推送                        |
+| `features.open_mode` | 运行模式：`"webview"`（桌面窗口）或 `"web"`（浏览器网页） |
 
 ### 5. 配置 NapCat（可选）
 
-如需 QQ 群推送，在 `napcat_send.py` 中修改：
+如需 QQ 群推送，在 `src/napcat_send.py` 中修改：
 
 ```python
 NAPCAT_URL = "http://127.0.0.1:3000/send_msg"
@@ -160,7 +170,7 @@ python app.py
 
 所有前端样式均以 Vue `<style scoped>` 形式写入各自组件，不再使用全局 CSS 文件。仅 `base.css` 保留 CSS 变量定义和全局 reset。
 
-后端事件处理器通过 `send_to_frontend()` 向 WebView 注入 `addDanmu(data)` 调用，前端 `stores/danmu.js` 根据 `data.type` 分流：
+后端事件处理器通过 `AppContext.send_to_frontend()` 向 WebView 注入 `addDanmu(data)` 调用（web 模式下通过事件队列轮询），前端 `stores/danmu.js` 根据 `data.type` 分流：
 
 - `danmu` / `gift` / `GUARD_BUY` → 追加到滚动列表
 - `super_chat` → 存入 `superChat` ref，由 `SuperChatItem.vue` 独立渲染在置顶位置
@@ -170,7 +180,7 @@ python app.py
 弹幕数据按房间存储在 `data/danmu_{room_id}.db` 中。如需迁移旧版数据库（`danmu.db` → 按房间分库），运行：
 
 ```bash
-python migrate_danmu_db.py --room-id 1879006019
+python scripts\migrate_danmu_db.py --room-id 1879006019
 ```
 
 ## 📄 许可证

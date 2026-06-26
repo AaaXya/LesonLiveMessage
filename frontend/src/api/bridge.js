@@ -7,7 +7,9 @@ function hasMethod(name) {
 }
 
 function isWebMode() {
-	return !window.pywebview
+	// URL 参数 ?mode=web 才是真正 web 模式；pywebview 未就绪 ≠ web 模式
+	if (window.pywebview) return false
+	return new URLSearchParams(location.search).get('mode') === 'web'
 }
 
 async function fetchApi(path, options = {}) {

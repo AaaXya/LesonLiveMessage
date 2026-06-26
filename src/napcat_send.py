@@ -3,9 +3,11 @@ import json
 import datetime
 import os
 
+from . import PROJECT_ROOT
+
 
 def load_config():
-    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    config_path = os.path.join(PROJECT_ROOT, "config.json")
     with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 

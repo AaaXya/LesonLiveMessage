@@ -17,6 +17,6 @@
     "enable_gift": true,
     "enable_danmu_db": true,
     "web_debug": false,
-    "open_mode": "web"
+    "open_mode": "webview"
   }
 }

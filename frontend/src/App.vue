@@ -7,6 +7,9 @@ import DanmuInput from './components/DanmuInput.vue'
 
 const settingsVisible = ref(false)
 
+// URL 传参 ?mode=web 时仅展示弹幕流（OBS 浏览器源场景）
+const isWebMode = new URLSearchParams(location.search).get('mode') === 'web'
+
 function openSettings() {
 	settingsVisible.value = true
 }
@@ -18,10 +21,12 @@ function closeSettings() {
 
 <template>
 	<div class="app-root">
-		<WindowControls :on-open-settings="openSettings" />
-		<SettingsPanel :visible="settingsVisible" @close="closeSettings" />
+		<template v-if="!isWebMode">
+			<WindowControls :on-open-settings="openSettings" />
+			<SettingsPanel :visible="settingsVisible" @close="closeSettings" />
+		</template>
 		<DanmuList />
-		<DanmuInput />
+		<DanmuInput v-if="!isWebMode" />
 	</div>
 </template>
 
