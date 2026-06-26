@@ -36,6 +36,7 @@ export const FEATURE_KEYS = [
 	'enable_gift',
 	'enable_danmu_db',
 	'web_debug',
+	'open_mode',
 ]
 
 export const FEATURE_LABELS = {
@@ -46,6 +47,12 @@ export const FEATURE_LABELS = {
 	enable_gift: '礼物消息',
 	enable_danmu_db: '弹幕数据库',
 	web_debug: 'Web 调试',
+	open_mode: '运行模式',
 }
+
+export const OPEN_MODE_OPTIONS = [
+	{ value: 'webview', label: '桌面窗口 (webview)' },
+	{ value: 'web', label: '浏览器网页' },
+]
 
 export const MAX_DANMU_ITEMS = 100

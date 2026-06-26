@@ -12,6 +12,7 @@ FEATURE_KEYS = (
     "enable_gift",
     "enable_danmu_db",
     "web_debug",
+    "open_mode",
 )
 
 
@@ -127,7 +128,14 @@ def normalize_config_update(current_config, update):
     incoming_features = update.get("features", {})
     for key in FEATURE_KEYS:
         if key in incoming_features:
-            features[key] = bool(incoming_features[key])
+            if key == "open_mode":
+                features[key] = (
+                    incoming_features[key]
+                    if incoming_features[key] in ("webview", "web")
+                    else "webview"
+                )
+            else:
+                features[key] = bool(incoming_features[key])
     next_config["features"] = features
 
     room_id = get_room_id(next_config)

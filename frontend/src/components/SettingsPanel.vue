@@ -1,6 +1,6 @@
 <script setup>
-import { toRef } from 'vue'
-import { FEATURE_LABELS } from '../constants'
+import { toRef, computed } from 'vue'
+import { FEATURE_LABELS, OPEN_MODE_OPTIONS } from '../constants'
 import { useSettings } from '../composables/useSettings'
 
 const props = defineProps({
@@ -28,6 +28,14 @@ const {
 
 const featuresBeforeLiveStart = ['enable_danmaku', 'enable_guard_buy', 'enable_super_chat']
 const featuresAfterLiveStart = ['enable_gift', 'enable_danmu_db', 'web_debug']
+
+// open_mode 是下拉选择，单独处理
+const openMode = computed({
+	get: () => features.value.open_mode || 'webview',
+	set: (val) => {
+		features.value.open_mode = val
+	},
+})
 
 function handleOverlayClick(event) {
 	if (event.target === event.currentTarget) {
@@ -72,6 +80,22 @@ async function handleSave() {
 						{{ option.label }}
 					</option>
 				</select>
+			</label>
+
+			<label class="settings-field">
+				{{ FEATURE_LABELS.open_mode }}
+				<select id="setting-open-mode" v-model="openMode">
+					<option
+						v-for="option in OPEN_MODE_OPTIONS"
+						:key="option.value"
+						:value="option.value"
+					>
+						{{ option.label }}
+					</option>
+				</select>
+				<div class="settings-field-hint">
+					切换后需重启应用生效。网页模式可在浏览器中打开。
+				</div>
 			</label>
 
 			<div class="settings-group-title">功能开关</div>

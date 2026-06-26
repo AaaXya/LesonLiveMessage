@@ -3,6 +3,10 @@ import json
 import webview
 import os
 import asyncio
+import threading
+import http.server
+import urllib.parse
+import webbrowser
 from login import get_credential
 from danmu_parser import (
     parse_bilibili_danmu,
@@ -33,6 +37,133 @@ def load_config():
 
 def resolve_frontend_index(base_path):
     return os.path.join(base_path, "frontend", "dist", "index.html")
+
+
+# ========== Web 模式：事件队列 + HTTP 服务器 ==========
+_event_queue = []
+_event_counter = 0
+_event_lock = threading.Lock()
+_base_path = os.path.dirname(os.path.abspath(__file__))
+_static_dir = os.path.join(_base_path, "frontend", "dist")
+_api_instance = None  # CloseApi 实例，web 模式下复用
+
+
+def push_event(data):
+    """推送事件到队列（web 模式使用）"""
+    global _event_counter
+    if data is None:
+        return
+    with _event_lock:
+        _event_counter += 1
+        _event_queue.append({"id": _event_counter, "data": data})
+        # 保留最近 500 条
+        if len(_event_queue) > 500:
+            _event_queue.pop(0)
+
+
+def _json_response(handler, data, status=200):
+    body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "application/json; charset=utf-8")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
+class _APIHandler(http.server.SimpleHTTPRequestHandler):
+    """静态文件 + REST API"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=_static_dir, **kwargs)
+
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+
+        if path == "/api/config":
+            if _api_instance and hasattr(_api_instance, "getFrontendConfig"):
+                result = _api_instance.getFrontendConfig()
+            else:
+                api = FrontendConfigApi()
+                result = api.getFrontendConfig()
+            _json_response(self, result)
+            return
+
+        if path == "/api/events":
+            qs = urllib.parse.parse_qs(parsed.query)
+            since = int(qs.get("since", [0])[0])
+            with _event_lock:
+                events = [e for e in _event_queue if e["id"] > since]
+            _json_response(self, {"events": events})
+            return
+
+        # 静态文件：SPA fallback — 非 API 路径且非静态资源时返回 index.html
+        if path.startswith("/api/"):
+            _json_response(self, {"ok": False, "error": "未知接口"}, status=404)
+            return
+
+        if not os.path.splitext(path)[1] and path != "/":
+            # 无扩展名 → 可能是前端路由，回退到 index.html
+            self.path = "/index.html"
+
+        super().do_GET()
+
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        body_raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
+        try:
+            body = json.loads(body_raw)
+        except json.JSONDecodeError:
+            body = {}
+
+        if path == "/api/config":
+            if _api_instance and hasattr(_api_instance, "saveFrontendConfig"):
+                result = _api_instance.saveFrontendConfig(body)
+            else:
+                api = FrontendConfigApi()
+                result = api.saveFrontendConfig(body)
+            _json_response(self, result)
+            return
+
+        if path == "/api/danmu":
+            if _api_instance and hasattr(_api_instance, "sendDanmu"):
+                result = _api_instance.sendDanmu(body.get("message", ""))
+            else:
+                result = {"ok": False, "error": "弹幕发送器未初始化"}
+            _json_response(self, result)
+            return
+
+        _json_response(self, {"ok": False, "error": "未知接口"}, status=404)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        # 仅调试模式下打印请求日志
+        if features.get("web_debug"):
+            super().log_message(format, *args)
+
+
+def start_web_server(port=8080):
+    """启动 web 模式 HTTP 服务器"""
+    global _api_instance
+    _api_instance = CloseApi()
+
+    server = http.server.HTTPServer(("127.0.0.1", port), _APIHandler)
+    print(f"✓ Web 服务器已启动：http://127.0.0.1:{port}")
+    webbrowser.open(f"http://127.0.0.1:{port}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.shutdown()
 
 
 config = load_config()
@@ -119,8 +250,13 @@ room_cover = None
 
 # 推送数据到前端
 def send_to_frontend(data):
-    if window and data:
+    if data is None:
+        return
+    if window:
         window.evaluate_js(f"addDanmu({json.dumps(data, ensure_ascii=False)})")
+    else:
+        # web 模式：推入事件队列
+        push_event(data)
 
 
 # 弹幕消息处理器
@@ -268,15 +404,31 @@ if __name__ == "__main__":
         if features["enable_gift"]:
             room.on("SEND_GIFT")(on_gift_handler)
 
-    window = webview.create_window(
-        title="B站弹幕姬",
-        url=resolve_frontend_index(base_path),
-        js_api=CloseApi(),
-        width=400,
-        height=700,
-        frameless=True,
-        on_top=True,
-        transparent=True,
-    )
-    window.events.loaded += on_window_ready
-    webview.start(debug=features["web_debug"])
+    open_mode = features.get("open_mode", "webview")
+
+    if open_mode == "web":
+        # ===== Web 模式：启动 HTTP 服务器 =====
+        print(f"🌐 运行模式：浏览器网页")
+        # 在后台启动直播间连接
+        if room:
+            threading.Thread(
+                target=lambda: sync(room_connect_loop(room)), daemon=True
+            ).start()
+        # 启动 web 服务器（阻塞）
+        web_port = int(os.environ.get("WEB_PORT", 8080))
+        start_web_server(port=web_port)
+    else:
+        # ===== Webview 模式：桌面窗口 =====
+        print(f"🪟 运行模式：桌面窗口 (webview)")
+        window = webview.create_window(
+            title="B站弹幕姬",
+            url=resolve_frontend_index(base_path),
+            js_api=CloseApi(),
+            width=400,
+            height=700,
+            frameless=True,
+            on_top=True,
+            transparent=True,
+        )
+        window.events.loaded += on_window_ready
+        webview.start(debug=features["web_debug"])
