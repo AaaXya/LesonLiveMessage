@@ -4,6 +4,7 @@ import datetime
 import os
 
 from . import PROJECT_ROOT
+from .avatar_proxy import fetch_image_data_uri_uncompressed
 
 
 def load_config():
@@ -74,7 +75,6 @@ def send_qq_group(msg: str, image: str = None, room_id=None):
 if __name__ == "__main__":
     # send_qq_group("测试：函数封装成功！")
     room_cover = "https://i0.hdslb.com/bfs/live/new_room_cover/46dc3b47198a994dc47d3b58b2cc6b908e6f4c7d.jpg"
-    from avatar_proxy import fetch_image_data_uri_uncompressed
 
     cover_data_uri = (
         fetch_image_data_uri_uncompressed(room_cover) if room_cover else None

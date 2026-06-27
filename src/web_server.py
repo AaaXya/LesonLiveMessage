@@ -10,6 +10,7 @@ import urllib.parse
 import webbrowser
 
 from . import PROJECT_ROOT
+from .api import CloseApi
 
 STATIC_DIR = os.path.join(PROJECT_ROOT, "frontend", "dist")
 
@@ -130,7 +131,6 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
 
 def start_web_server(ctx, port=8080):
     """启动 web 模式 HTTP 服务器（阻塞）"""
-    from .api import CloseApi
 
     # 设置类属性，每个请求的 handler 实例自动继承
     APIHandler.ctx = ctx

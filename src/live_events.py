@@ -14,6 +14,7 @@ from .danmu_parser import (
 )
 from .napcat_send import send_qq_group
 from .danmu_db import save_danmu
+from .avatar_proxy import fetch_image_data_uri_uncompressed
 
 # ==================== 事件处理器 ====================
 
@@ -56,8 +57,6 @@ async def live_start_handler(event, ctx):
     print("直播开始：", event)
 
     if ctx.features.get("enable_qq_notification") and ctx.live_state == 1:
-        from avatar_proxy import fetch_image_data_uri_uncompressed
-
         cover_uri = (
             fetch_image_data_uri_uncompressed(ctx.room_cover)
             if ctx.room_cover
