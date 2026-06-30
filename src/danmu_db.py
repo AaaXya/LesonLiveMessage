@@ -4,39 +4,53 @@ import re
 import sqlite3
 
 from . import PROJECT_ROOT
+from .frontend_config import load_app_config
 
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 LEGACY_DB_FILE = os.path.join(PROJECT_ROOT, "danmu.db")
 
-# 过滤词列表：
-#   str        → 完全匹配（大小写敏感）
-#   re.Pattern → 正则完全匹配 re.fullmatch()
-FILTER_WORDS = [
+# 系统级过滤正则（不可由前端修改）
+_SYSTEM_FILTER_PATTERNS = [
     re.compile(r"^\[.*\]$"),  # 纯括号文本
-    # "打卡",
-    # "签到",
-    # re.compile(r"\d{5,}"),
-    "钓鱼",
-    "猫猫冲撞",
-    "iOS端可关注公众号哗哩哗哩直播姬充值~",
-    "有一种陪伴叫: 加入大航海~",
-    "小礼物和弹幕都是对主播的支持哦，比心心~",
-    "你已经是成熟的观众了，该学会自己上船了~",
 ]
+
+# 用户自定义滤词（运行时从 config.json 加载）
+_user_filter_words = []
+
+
+def _load_user_filter_words():
+    """从 config.json 读取用户滤词列表"""
+    global _user_filter_words
+    try:
+        config = load_app_config()
+        _user_filter_words = [
+            str(w).strip() for w in config.get("filter_words", []) if str(w).strip()
+        ]
+    except Exception:
+        _user_filter_words = []
+
+
+def reload_filter_words():
+    """供外部（保存配置后）调用，刷新滤词缓存"""
+    _load_user_filter_words()
 
 
 def _should_filter_danmu(content: str) -> bool:
-    """检查弹幕内容是否应被过滤（字符串子串匹配 / 正则搜索）"""
-    if not FILTER_WORDS:
-        return False
-    for entry in FILTER_WORDS:
-        if isinstance(entry, re.Pattern):
-            if entry.fullmatch(content):
-                return True
-        elif isinstance(entry, str):
-            if entry == content:
+    """检查弹幕内容是否应被过滤（系统正则 + 用户滤词完全匹配）"""
+    # 系统正则
+    for pattern in _SYSTEM_FILTER_PATTERNS:
+        if pattern.fullmatch(content):
+            return True
+    # 用户滤词（完全匹配，大小写敏感）
+    if _user_filter_words:
+        for word in _user_filter_words:
+            if word == content:
                 return True
     return False
+
+
+# 模块加载时读取一次滤词
+_load_user_filter_words()
 
 
 def get_room_db_file(room_id, ensure_dir=True) -> str:

@@ -15,6 +15,7 @@ export function useSettings(visible) {
 	const theme = ref('default')
 	const enableQqNotification = ref(false)
 	const features = ref(createDefaultFeatures())
+	const filterWords = ref([])
 
 	const themeOptions = computed(() => frontendConfig.value?.themeOptions || [])
 
@@ -70,6 +71,8 @@ export function useSettings(visible) {
 		FEATURE_KEYS.forEach((key) => {
 			features.value[key] = Boolean(configFeatures[key])
 		})
+
+		filterWords.value = Array.isArray(config.filter_words) ? [...config.filter_words] : []
 	}
 
 	function collectUpdate() {
@@ -81,6 +84,7 @@ export function useSettings(visible) {
 			frontend: { theme: theme.value },
 			enable_qq_notification: qqNotificationEnabled,
 			features: { ...features.value },
+			filter_words: [...filterWords.value],
 		}
 	}
 
@@ -141,6 +145,7 @@ export function useSettings(visible) {
 		liveStartEnabled,
 		liveStartOptionsDisabled,
 		groupIdDisabled,
+		filterWords,
 		save,
 	}
 }

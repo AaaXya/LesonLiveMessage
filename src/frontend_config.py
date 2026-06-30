@@ -155,6 +155,12 @@ def normalize_config_update(current_config, update):
     next_config["room_bindings"] = bindings
     next_config["features"].pop("enable_qq_notification", None)
 
+    # 滤词列表
+    if "filter_words" in update:
+        next_config["filter_words"] = [
+            str(w).strip() for w in update["filter_words"] if str(w).strip()
+        ]
+
     return next_config
 
 
@@ -177,6 +183,12 @@ class FrontendConfigApi:
             current_config = load_app_config()
             next_config = normalize_config_update(current_config, update or {})
             save_app_config(next_config)
+
+            # 用户滤词变更后刷新内存缓存
+            from .danmu_db import reload_filter_words
+
+            reload_filter_words()
+
             return {
                 "ok": True,
                 "frontendConfig": build_frontend_config(),

@@ -1,5 +1,5 @@
 <script setup>
-import { toRef, computed } from 'vue'
+import { toRef, computed, ref } from 'vue'
 import { FEATURE_LABELS, OPEN_MODE_OPTIONS } from '../constants'
 import { useSettings } from '../composables/useSettings'
 
@@ -23,11 +23,12 @@ const {
 	liveStartEnabled,
 	liveStartOptionsDisabled,
 	groupIdDisabled,
+	filterWords,
 	save,
 } = useSettings(toRef(props, 'visible'))
 
 const featuresBeforeLiveStart = ['enable_danmaku', 'enable_guard_buy', 'enable_super_chat']
-const featuresAfterLiveStart = ['enable_gift', 'enable_danmu_db', 'web_debug']
+const featuresAfterLiveStart = ['enable_gift', 'web_debug']
 
 // open_mode 是下拉选择，单独处理
 const openMode = computed({
@@ -36,6 +37,21 @@ const openMode = computed({
 		features.value.open_mode = val
 	},
 })
+
+// 滤词输入
+const newFilterWord = ref('')
+
+function addFilterWord() {
+	const word = newFilterWord.value.trim()
+	if (!word) return
+	if (filterWords.value.includes(word)) return
+	filterWords.value.push(word)
+	newFilterWord.value = ''
+}
+
+function removeFilterWord(index) {
+	filterWords.value.splice(index, 1)
+}
 
 function handleOverlayClick(event) {
 	if (event.target === event.currentTarget) {
@@ -139,6 +155,50 @@ async function handleSave() {
 				<input v-model="features[key]" type="checkbox" />
 				{{ FEATURE_LABELS[key] }}
 			</label>
+
+			<div class="settings-feature-block">
+				<label class="settings-check">
+					<input v-model="features.enable_danmu_db" type="checkbox" />
+					{{ FEATURE_LABELS.enable_danmu_db }}
+				</label>
+				<div v-if="features.enable_danmu_db" class="settings-nested">
+					<div class="settings-filter-words-hint">
+						完全匹配（大小写敏感）的弹幕将不会存入数据库
+					</div>
+					<div class="settings-filter-words-input-row">
+						<input
+							v-model="newFilterWord"
+							type="text"
+							placeholder="输入滤词，回车添加"
+							@keyup.enter="addFilterWord"
+						/>
+						<button
+							type="button"
+							class="settings-filter-add-btn"
+							@click="addFilterWord"
+						>
+							添加
+						</button>
+					</div>
+					<ul v-if="filterWords.length" class="settings-filter-words-list">
+						<li
+							v-for="(word, idx) in filterWords"
+							:key="idx"
+							class="settings-filter-word-item"
+						>
+							<span class="settings-filter-word-text">{{ word }}</span>
+							<button
+								type="button"
+								class="settings-filter-word-del"
+								@click="removeFilterWord(idx)"
+							>
+								×
+							</button>
+						</li>
+					</ul>
+					<div v-else class="settings-filter-words-empty">暂无滤词</div>
+				</div>
+			</div>
 
 			<div class="settings-status">{{ status }}</div>
 			<div class="settings-actions">
@@ -372,5 +432,127 @@ async function handleSave() {
 	margin-top: 10px;
 	color: var(--text-muted);
 	font-size: 0.82rem;
+}
+
+/* ---- 滤词列表 ---- */
+.settings-filter-words-hint {
+	font-size: 0.75rem;
+	color: var(--text-muted);
+	margin-bottom: 8px;
+}
+
+.settings-filter-words-input-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+
+.settings-filter-words-input-row input {
+	flex: 1;
+	padding: 6px 10px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--surface);
+	color: var(--text-primary);
+	outline: none;
+	font-size: 0.82rem;
+	transition: border-color 0.2s ease;
+}
+
+.settings-filter-words-input-row input:focus {
+	border-color: var(--name-text);
+	box-shadow: 0 0 0 2px rgba(0, 234, 255, 0.12);
+}
+
+.settings-filter-words-input-row input::placeholder {
+	color: var(--text-placeholder);
+}
+
+.settings-filter-add-btn {
+	padding: 6px 12px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--surface-active);
+	color: var(--text-primary);
+	cursor: pointer;
+	font-size: 0.82rem;
+	font-weight: 600;
+	white-space: nowrap;
+	transition: background 0.15s ease;
+}
+
+.settings-filter-add-btn:hover {
+	background: var(--surface-hover);
+}
+
+.settings-filter-words-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 140px;
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.settings-filter-words-list::-webkit-scrollbar {
+	width: 4px;
+}
+
+.settings-filter-words-list::-webkit-scrollbar-thumb {
+	background-color: var(--scrollbar-thumb);
+	border-radius: 4px;
+}
+
+.settings-filter-word-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+	padding: 4px 6px;
+	border-radius: 4px;
+	font-size: 0.82rem;
+	color: var(--text-primary);
+	transition: background 0.1s ease;
+}
+
+.settings-filter-word-item:hover {
+	background: var(--surface-hover);
+}
+
+.settings-filter-word-text {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.settings-filter-word-del {
+	flex-shrink: 0;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		color 0.15s ease,
+		background 0.15s ease;
+}
+
+.settings-filter-word-del:hover {
+	color: #ff6b6b;
+	background: rgba(255, 107, 107, 0.15);
+}
+
+.settings-filter-words-empty {
+	font-size: 0.78rem;
+	color: var(--text-muted);
+	text-align: center;
+	padding: 6px 0;
 }
 </style>
