@@ -13,7 +13,6 @@ FEATURE_KEYS = (
     "enable_gift",
     "enable_danmu_db",
     "enable_live_timed_danmu",
-    "enable_live_timed_danmu_3h",
     "web_debug",
     "open_mode",
 )
@@ -55,18 +54,7 @@ def apply_room_binding(config):
         group_id and binding.get("enable_qq_notification", False)
     )
     # 定时弹幕
-    features["live_timed_danmu_delay"] = int(binding.get("live_timed_danmu_delay", 300))
-    features["live_timed_danmu_text"] = str(binding.get("live_timed_danmu_text", ""))
-    features["live_timed_danmu_enabled"] = bool(
-        binding.get("live_timed_danmu_enabled", False)
-    )
-    # 定时弹幕（3小时）
-    features["live_timed_danmu_3h_text"] = str(
-        binding.get("live_timed_danmu_3h_text", "")
-    )
-    features["live_timed_danmu_3h_enabled"] = bool(
-        binding.get("live_timed_danmu_3h_enabled", False)
-    )
+    features["live_timed_danmu_list"] = list(binding.get("live_timed_danmu_list", []))
     next_config["features"] = features
     return next_config
 
@@ -166,38 +154,19 @@ def normalize_config_update(current_config, update):
             current_binding.get("enable_qq_notification", False),
         )
     )
-    # 定时弹幕
-    current_binding["live_timed_danmu_enabled"] = bool(
-        update.get(
-            "live_timed_danmu_enabled",
-            current_binding.get("live_timed_danmu_enabled", False),
-        )
-    )
-    current_binding["live_timed_danmu_delay"] = int(
-        update.get(
-            "live_timed_danmu_delay",
-            current_binding.get("live_timed_danmu_delay", 300),
-        )
-    )
-    current_binding["live_timed_danmu_text"] = str(
-        update.get(
-            "live_timed_danmu_text",
-            current_binding.get("live_timed_danmu_text", ""),
-        )
-    )
-    # 定时弹幕（3小时）
-    current_binding["live_timed_danmu_3h_enabled"] = bool(
-        update.get(
-            "live_timed_danmu_3h_enabled",
-            current_binding.get("live_timed_danmu_3h_enabled", False),
-        )
-    )
-    current_binding["live_timed_danmu_3h_text"] = str(
-        update.get(
-            "live_timed_danmu_3h_text",
-            current_binding.get("live_timed_danmu_3h_text", ""),
-        )
-    )
+    # 定时弹幕列表
+    if "live_timed_danmu_list" in update:
+        raw_list = update["live_timed_danmu_list"]
+        if isinstance(raw_list, list):
+            current_binding["live_timed_danmu_list"] = [
+                {
+                    "delay": max(1, int(item.get("delay", 300))),
+                    "text": str(item.get("text", "")).strip(),
+                    "enabled": bool(item.get("enabled", True)),
+                }
+                for item in raw_list
+                if isinstance(item, dict) and str(item.get("text", "")).strip()
+            ]
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
     next_config["features"].pop("enable_qq_notification", None)

@@ -69,29 +69,21 @@ async def live_start_handler(event, ctx):
             ctx.lesson_room_id,
         )
 
-    # 定时弹幕：开播后延迟指定秒数发送弹幕
-    if (
-        ctx.features.get("enable_live_timed_danmu")
-        and ctx.features.get("live_timed_danmu_enabled")
-        and str(ctx.features.get("live_timed_danmu_text", "")).strip()
-        and ctx.live_state == 1
-    ):
-        delay = max(1, int(ctx.features.get("live_timed_danmu_delay", 300)))
-        text = str(ctx.features["live_timed_danmu_text"]).strip()
-        print(f"定时弹幕已安排：{delay} 秒后发送「{text}」")
-        asyncio.create_task(_send_timed_danmu(delay, text, ctx))
-
-    # 定时弹幕（3小时）：开播 3 小时后发送弹幕
-    if (
-        ctx.features.get("enable_live_timed_danmu_3h")
-        and ctx.features.get("live_timed_danmu_3h_enabled")
-        and str(ctx.features.get("live_timed_danmu_3h_text", "")).strip()
-        and ctx.live_state == 1
-    ):
-        delay_3h = 10800  # 3 小时 = 10800 秒
-        text_3h = str(ctx.features["live_timed_danmu_3h_text"]).strip()
-        print(f"定时弹幕（3h）已安排：{delay_3h} 秒后发送「{text_3h}」")
-        asyncio.create_task(_send_timed_danmu(delay_3h, text_3h, ctx))
+    # 定时弹幕：开播后按列表中每条配置延迟发送弹幕
+    if ctx.features.get("enable_live_timed_danmu") and ctx.live_state == 1:
+        danmu_list = ctx.features.get("live_timed_danmu_list", [])
+        if isinstance(danmu_list, list):
+            for item in danmu_list:
+                if not isinstance(item, dict):
+                    continue
+                delay = max(1, int(item.get("delay", 300)))
+                text = str(item.get("text", "")).strip()
+                if not text:
+                    continue
+                if not item.get("enabled", True):
+                    continue
+                print(f"定时弹幕已安排：{delay} 秒后发送「{text}」")
+                asyncio.create_task(_send_timed_danmu(delay, text, ctx))
 
 
 async def _send_timed_danmu(delay_seconds: int, message: str, ctx):
