@@ -69,6 +69,49 @@ async def live_start_handler(event, ctx):
             ctx.lesson_room_id,
         )
 
+    # 定时弹幕：开播后延迟指定秒数发送弹幕
+    if (
+        ctx.features.get("enable_live_timed_danmu")
+        and ctx.features.get("live_timed_danmu_enabled")
+        and str(ctx.features.get("live_timed_danmu_text", "")).strip()
+        and ctx.live_state == 1
+    ):
+        delay = max(1, int(ctx.features.get("live_timed_danmu_delay", 300)))
+        text = str(ctx.features["live_timed_danmu_text"]).strip()
+        print(f"定时弹幕已安排：{delay} 秒后发送「{text}」")
+        asyncio.create_task(_send_timed_danmu(delay, text, ctx))
+
+    # 定时弹幕（3小时）：开播 3 小时后发送弹幕
+    if (
+        ctx.features.get("enable_live_timed_danmu_3h")
+        and ctx.features.get("live_timed_danmu_3h_enabled")
+        and str(ctx.features.get("live_timed_danmu_3h_text", "")).strip()
+        and ctx.live_state == 1
+    ):
+        delay_3h = 10800  # 3 小时 = 10800 秒
+        text_3h = str(ctx.features["live_timed_danmu_3h_text"]).strip()
+        print(f"定时弹幕（3h）已安排：{delay_3h} 秒后发送「{text_3h}」")
+        asyncio.create_task(_send_timed_danmu(delay_3h, text_3h, ctx))
+
+
+async def _send_timed_danmu(delay_seconds: int, message: str, ctx):
+    """延迟指定秒数后发送弹幕到直播间"""
+    try:
+        await asyncio.sleep(delay_seconds)
+        if ctx.sender is None:
+            print("定时弹幕发送失败：sender 未初始化")
+            return
+        if hasattr(live, "Danmaku"):
+            danmaku = live.Danmaku(message)
+            result = await ctx.sender.send_danmaku(danmaku)
+        else:
+            result = await ctx.sender.send_danmaku(message)
+        print(f"定时弹幕发送成功：「{message}」结果：{result}")
+    except asyncio.CancelledError:
+        print("定时弹幕任务已取消")
+    except Exception as e:
+        print(f"定时弹幕发送失败：{e}")
+
 
 async def on_gift_handler(event, ctx):
     """礼物消息"""

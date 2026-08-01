@@ -35,6 +35,8 @@ export const FEATURE_KEYS = [
 	'enable_live_start',
 	'enable_gift',
 	'enable_danmu_db',
+	'enable_live_timed_danmu',
+	'enable_live_timed_danmu_3h',
 	'web_debug',
 	'open_mode',
 ]
@@ -46,6 +48,8 @@ export const FEATURE_LABELS = {
 	enable_live_start: '开播通知',
 	enable_gift: '礼物消息',
 	enable_danmu_db: '弹幕数据库',
+	enable_live_timed_danmu: '开播定时弹幕',
+	enable_live_timed_danmu_3h: '开播3小时定时弹幕',
 	web_debug: 'Web 调试',
 	open_mode: '运行模式',
 }

@@ -3,7 +3,12 @@
   "room_bindings": {
     "1879006019": {
       "GROUPID": "1093523827",
-      "enable_qq_notification": true
+      "enable_qq_notification": true,
+      "live_timed_danmu_enabled": false,
+      "live_timed_danmu_delay": 300,
+      "live_timed_danmu_text": "直播开始啦，欢迎各位观众~",
+      "live_timed_danmu_3h_enabled": false,
+      "live_timed_danmu_3h_text": "已经开播三小时啦，感谢大家陪伴！"
     }
   },
   "frontend": {
@@ -16,8 +21,15 @@
     "enable_live_start": true,
     "enable_gift": true,
     "enable_danmu_db": true,
+    "enable_live_timed_danmu": true,
+    "enable_live_timed_danmu_3h": true,
     "web_debug": false,
-    "open_mode": "webview"
+    "open_mode": "webview",
+    "live_timed_danmu_delay": 300,
+    "live_timed_danmu_text": "直播开始啦，欢迎各位观众~",
+    "live_timed_danmu_enabled": false,
+    "live_timed_danmu_3h_text": "已经开播三小时啦，感谢大家陪伴！",
+    "live_timed_danmu_3h_enabled": false
   },
   "filter_words": [
     "钓鱼",

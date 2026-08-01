@@ -16,6 +16,11 @@ export function useSettings(visible) {
 	const enableQqNotification = ref(false)
 	const features = ref(createDefaultFeatures())
 	const filterWords = ref([])
+	const liveTimedDanmuEnabled = ref(false)
+	const liveTimedDanmuDelay = ref(300)
+	const liveTimedDanmuText = ref('')
+	const liveTimedDanmu3hEnabled = ref(false)
+	const liveTimedDanmu3hText = ref('')
 
 	const themeOptions = computed(() => frontendConfig.value?.themeOptions || [])
 
@@ -72,17 +77,47 @@ export function useSettings(visible) {
 			features.value[key] = Boolean(configFeatures[key])
 		})
 
+		liveTimedDanmuEnabled.value = Boolean(
+			roomBinding.live_timed_danmu_enabled ??
+			configFeatures.live_timed_danmu_enabled ??
+			false,
+		)
+		liveTimedDanmuDelay.value = Number(
+			roomBinding.live_timed_danmu_delay ?? configFeatures.live_timed_danmu_delay ?? 300,
+		)
+		liveTimedDanmuText.value = String(
+			roomBinding.live_timed_danmu_text ?? configFeatures.live_timed_danmu_text ?? '',
+		)
+
+		liveTimedDanmu3hEnabled.value = Boolean(
+			roomBinding.live_timed_danmu_3h_enabled ??
+			configFeatures.live_timed_danmu_3h_enabled ??
+			false,
+		)
+		liveTimedDanmu3hText.value = String(
+			roomBinding.live_timed_danmu_3h_text ?? configFeatures.live_timed_danmu_3h_text ?? '',
+		)
+
 		filterWords.value = Array.isArray(config.filter_words) ? [...config.filter_words] : []
 	}
 
 	function collectUpdate() {
 		const qqNotificationEnabled = liveStartEnabled.value && enableQqNotification.value
+		const timedDanmuEnabled =
+			features.value.enable_live_timed_danmu && liveTimedDanmuEnabled.value
+		const timedDanmu3hEnabled =
+			features.value.enable_live_timed_danmu_3h && liveTimedDanmu3hEnabled.value
 
 		return {
 			LESSONROOMID: String(roomId.value || '').trim(),
 			GROUPID: qqNotificationEnabled ? String(groupId.value || '').trim() : '',
 			frontend: { theme: theme.value },
 			enable_qq_notification: qqNotificationEnabled,
+			live_timed_danmu_enabled: timedDanmuEnabled,
+			live_timed_danmu_delay: Number(liveTimedDanmuDelay.value) || 300,
+			live_timed_danmu_text: String(liveTimedDanmuText.value || '').trim(),
+			live_timed_danmu_3h_enabled: timedDanmu3hEnabled,
+			live_timed_danmu_3h_text: String(liveTimedDanmu3hText.value || '').trim(),
 			features: { ...features.value },
 			filter_words: [...filterWords.value],
 		}
@@ -146,6 +181,11 @@ export function useSettings(visible) {
 		liveStartOptionsDisabled,
 		groupIdDisabled,
 		filterWords,
+		liveTimedDanmuEnabled,
+		liveTimedDanmuDelay,
+		liveTimedDanmuText,
+		liveTimedDanmu3hEnabled,
+		liveTimedDanmu3hText,
 		save,
 	}
 }

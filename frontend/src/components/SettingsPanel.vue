@@ -24,6 +24,11 @@ const {
 	liveStartOptionsDisabled,
 	groupIdDisabled,
 	filterWords,
+	liveTimedDanmuEnabled,
+	liveTimedDanmuDelay,
+	liveTimedDanmuText,
+	liveTimedDanmu3hEnabled,
+	liveTimedDanmu3hText,
 	save,
 } = useSettings(toRef(props, 'visible'))
 
@@ -155,6 +160,90 @@ async function handleSave() {
 				<input v-model="features[key]" type="checkbox" />
 				{{ FEATURE_LABELS[key] }}
 			</label>
+
+			<div class="settings-feature-block">
+				<label class="settings-check">
+					<input v-model="features.enable_live_timed_danmu" type="checkbox" />
+					{{ FEATURE_LABELS.enable_live_timed_danmu }}
+				</label>
+				<div
+					class="settings-nested"
+					:class="{ 'is-disabled': !features.enable_live_timed_danmu }"
+				>
+					<label class="settings-check">
+						<input
+							v-model="liveTimedDanmuEnabled"
+							type="checkbox"
+							:disabled="!features.enable_live_timed_danmu"
+						/>
+						启用定时弹幕
+					</label>
+					<label class="settings-field settings-field-nested">
+						延迟时间（秒）
+						<input
+							v-model.number="liveTimedDanmuDelay"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							placeholder="300"
+							:disabled="!features.enable_live_timed_danmu || !liveTimedDanmuEnabled"
+						/>
+						<div class="settings-field-hint">开播后延迟多少秒自动发送弹幕</div>
+					</label>
+					<label class="settings-field settings-field-nested">
+						弹幕内容
+						<input
+							v-model="liveTimedDanmuText"
+							type="text"
+							maxlength="30"
+							placeholder="直播开始啦，欢迎各位观众~"
+							:disabled="!features.enable_live_timed_danmu || !liveTimedDanmuEnabled"
+						/>
+						<div class="settings-field-hint">
+							开播后将自动在直播间发送此弹幕（最多30字）
+						</div>
+					</label>
+				</div>
+			</div>
+
+			<div class="settings-feature-block">
+				<label class="settings-check">
+					<input v-model="features.enable_live_timed_danmu_3h" type="checkbox" />
+					{{ FEATURE_LABELS.enable_live_timed_danmu_3h }}
+				</label>
+				<div
+					class="settings-nested"
+					:class="{ 'is-disabled': !features.enable_live_timed_danmu_3h }"
+				>
+					<label class="settings-check">
+						<input
+							v-model="liveTimedDanmu3hEnabled"
+							type="checkbox"
+							:disabled="!features.enable_live_timed_danmu_3h"
+						/>
+						启用 3 小时定时弹幕
+					</label>
+					<div class="settings-field settings-field-nested">
+						<span class="settings-field-readonly-label">延迟时间</span>
+						<span class="settings-field-readonly-value">3 小时（10800 秒）</span>
+					</div>
+					<label class="settings-field settings-field-nested">
+						弹幕内容
+						<input
+							v-model="liveTimedDanmu3hText"
+							type="text"
+							maxlength="30"
+							placeholder="已经开播三小时啦，感谢大家陪伴！"
+							:disabled="
+								!features.enable_live_timed_danmu_3h || !liveTimedDanmu3hEnabled
+							"
+						/>
+						<div class="settings-field-hint">
+							开播 3 小时后自动在直播间发送此弹幕（最多30字）
+						</div>
+					</label>
+				</div>
+			</div>
 
 			<div class="settings-feature-block">
 				<label class="settings-check">
@@ -379,6 +468,15 @@ async function handleSave() {
 
 .settings-field-nested {
 	margin-bottom: 0;
+}
+.settings-field-readonly-label {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	margin-bottom: 4px;
+}
+.settings-field-readonly-value {
+	font-size: 0.9rem;
+	color: var(--text-primary);
 }
 .settings-field-nested input:disabled,
 .settings-check input:disabled {
