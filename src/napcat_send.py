@@ -21,7 +21,11 @@ NAPCAT_TOKEN = "4D7iSSwiD85HCl8h"
 def get_group_id(room_id=None):
     config = load_config()
     if room_id is None:
-        room_id = config.get("LESSONROOMID")
+        ids = config.get("room_ids")
+        if isinstance(ids, list) and ids:
+            room_id = ids[0]
+        else:
+            room_id = config.get("LESSONROOMID")
     binding = config.get("room_bindings", {}).get(str(room_id), {})
     return str(binding.get("GROUPID", "")).strip()
 

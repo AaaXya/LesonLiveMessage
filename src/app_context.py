@@ -8,14 +8,22 @@ import os
 import threading
 
 from . import PROJECT_ROOT
-from .frontend_config import apply_room_binding
+from .frontend_config import apply_room_binding, get_room_ids, get_room_id
 
 
 class AppContext:
-    def __init__(self):
+    def __init__(self, room_id=None):
+        # 固定房间 ID（多窗口模式）：该上下文只监听这一个房间
+        self.fixed_room_id = str(room_id).strip() if room_id else None
+
         # ---- 配置 ----
         self.config = self._load_config()
-        self.lesson_room_id = self.config["LESSONROOMID"]
+        self.room_ids = get_room_ids(self.config)
+        self.lesson_room_id = (
+            int(self.fixed_room_id)
+            if self.fixed_room_id
+            else (int(get_room_id(self.config)) if get_room_id(self.config) else 0)
+        )
         self.features = self.config["features"]
 
         # ---- B站连接 ----
@@ -43,7 +51,7 @@ class AppContext:
             raise FileNotFoundError(f"配置文件不存在：{config_path}")
         with open(config_path, "r", encoding="utf-8") as f:
             try:
-                return apply_room_binding(json.load(f))
+                return apply_room_binding(json.load(f), self.fixed_room_id)
             except json.JSONDecodeError:
                 raise ValueError("config.json 格式错误，请检查语法")
 
@@ -51,8 +59,13 @@ class AppContext:
         """重新加载配置（前端保存后调用）"""
         old_room_id = self.lesson_room_id
         self.config = self._load_config()
-        self.lesson_room_id = self.config["LESSONROOMID"]
         self.features = self.config["features"]
+        self.room_ids = get_room_ids(self.config)
+        if self.fixed_room_id:
+            # 多窗口模式：房间固定，不随全局配置变化
+            self.lesson_room_id = int(self.fixed_room_id)
+            return False
+        self.lesson_room_id = int(get_room_id(self.config) or self.lesson_room_id)
         return old_room_id != self.lesson_room_id
 
     # ==================== 前端推送 ====================

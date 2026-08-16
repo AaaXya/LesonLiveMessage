@@ -15,6 +15,7 @@ const emit = defineEmits(['close'])
 const {
 	status,
 	roomId,
+	roomFixed,
 	groupId,
 	theme,
 	features,
@@ -90,9 +91,16 @@ async function handleSave() {
 					type="number"
 					inputmode="numeric"
 					required
+					:disabled="roomFixed"
 					placeholder="例如 1879006019"
 				/>
-				<div class="settings-field-hint">必填。QQ 群绑定等功能都关联到此房间 ID。</div>
+				<div class="settings-field-hint">
+					{{
+						roomFixed
+							? '多开模式下此窗口固定监听该直播间。'
+							: '必填。QQ 群绑定等功能都关联到此房间 ID。'
+					}}
+				</div>
 			</div>
 
 			<label class="settings-field">

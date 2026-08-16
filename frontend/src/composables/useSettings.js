@@ -11,6 +11,7 @@ import { saveFrontendConfig } from '../api/bridge'
 export function useSettings(visible) {
 	const status = ref('')
 	const roomId = ref('')
+	const roomFixed = ref(false)
 	const groupId = ref('')
 	const theme = ref('default')
 	const enableQqNotification = ref(false)
@@ -63,6 +64,7 @@ export function useSettings(visible) {
 		const roomBinding = getCurrentRoomBinding(config)
 
 		roomId.value = config.LESSONROOMID ? String(config.LESSONROOMID) : ''
+		roomFixed.value = Boolean(config.roomFixed)
 		groupId.value = roomBinding.GROUPID || ''
 		theme.value = config.frontend?.theme || configPayload.theme?.name || 'default'
 		enableQqNotification.value = Boolean(
@@ -90,7 +92,7 @@ export function useSettings(visible) {
 		const qqNotificationEnabled = liveStartEnabled.value && enableQqNotification.value
 
 		return {
-			LESSONROOMID: String(roomId.value || '').trim(),
+			room_ids: [String(roomId.value || '').trim()].filter(Boolean),
 			GROUPID: qqNotificationEnabled ? String(groupId.value || '').trim() : '',
 			frontend: { theme: theme.value },
 			enable_qq_notification: qqNotificationEnabled,
@@ -155,6 +157,7 @@ export function useSettings(visible) {
 	return {
 		status,
 		roomId,
+		roomFixed,
 		groupId,
 		theme,
 		features,

@@ -114,10 +114,14 @@ cd ..
 
 ```json
 {
-	"LESSONROOMID": 1879006019,
+	"room_ids": [1879006019, 另一个房间ID],
 	"room_bindings": {
 		"1879006019": {
 			"GROUPID": "你的QQ群号",
+			"enable_qq_notification": true
+		},
+		"另一个房间ID": {
+			"GROUPID": "另一个QQ群号",
 			"enable_qq_notification": true
 		}
 	},
@@ -139,11 +143,20 @@ cd ..
 
 | 字段                 | 说明                                                      |
 | -------------------- | --------------------------------------------------------- |
-| `LESSONROOMID`       | B站直播间 ID                                              |
+| `room_ids`           | 监听的直播间 ID 数组，webview 模式下每个房间一个窗口      |
 | `room_bindings`      | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号                  |
 | `frontend.theme`     | 主题名，可选 `default` / `ocean` / `sakura` 等            |
 | `features`           | 功能开关，控制各类消息的显示和推送                        |
 | `features.open_mode` | 运行模式：`"webview"`（桌面窗口）或 `"web"`（浏览器网页） |
+
+### 多窗口多房间（webview 模式）
+
+在 `room_ids` 中配置多个房间后，以 `"webview"` 模式启动应用，**每个房间会各自创建一个独立悬浮窗**，分别监听对应直播间，互不干扰。各窗口设置面板中的直播间 ID 为只读，QQ 群、开播通知、定时弹幕等配置仅对该窗口的房间生效。
+
+| 字段                     | 说明                                                      |
+| ------------------------ | --------------------------------------------------------- |
+| `enable_qq_notification` | 开播后推送到该房间绑定的 QQ 群                            |
+| `live_timed_danmu_list`  | 开播定时弹幕列表，每条含 `delay`（秒）、`text`、`enabled` |
 
 ### 5. 配置 NapCat（可选）
 

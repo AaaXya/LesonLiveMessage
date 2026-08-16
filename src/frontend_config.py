@@ -35,8 +35,21 @@ def get_selected_theme_name(config):
     return frontend_config.get("theme") or config.get("theme") or "default"
 
 
+def get_room_ids(config):
+    """返回监听房间 ID 列表（新格式 room_ids，兼容旧 LESSONROOMID）"""
+    ids = config.get("room_ids")
+    if isinstance(ids, list):
+        result = [str(i).strip() for i in ids if str(i).strip().isdigit()]
+        if result:
+            return result
+    legacy = str(config.get("LESSONROOMID", "")).strip()
+    return [legacy] if legacy.isdigit() else []
+
+
 def get_room_id(config):
-    return str(config.get("LESSONROOMID", "")).strip()
+    """返回主房间 ID（列表首个）"""
+    ids = get_room_ids(config)
+    return ids[0] if ids else ""
 
 
 def get_room_binding(config, room_id=None):
@@ -45,10 +58,10 @@ def get_room_binding(config, room_id=None):
     return dict(bindings.get(str(room_id), {}))
 
 
-def apply_room_binding(config):
+def apply_room_binding(config, room_id=None):
     next_config = dict(config)
     features = dict(next_config.get("features", {}))
-    binding = get_room_binding(next_config)
+    binding = get_room_binding(next_config, room_id)
     group_id = str(binding.get("GROUPID", "")).strip()
     features["enable_qq_notification"] = bool(
         group_id and binding.get("enable_qq_notification", False)
@@ -69,8 +82,8 @@ def load_theme_config():
     return theme_config
 
 
-def load_app_config():
-    return apply_room_binding(load_json(CONFIG_PATH, {}))
+def load_app_config(room_id=None):
+    return apply_room_binding(load_json(CONFIG_PATH, {}), room_id)
 
 
 def save_app_config(config):
@@ -110,13 +123,23 @@ def load_selected_theme(config=None, theme_config=None):
     }
 
 
-def normalize_config_update(current_config, update):
+def normalize_config_update(current_config, update, room_id=None):
     next_config = dict(current_config)
 
-    if "LESSONROOMID" in update:
-        room_id_str = str(update["LESSONROOMID"]).strip()
-        if room_id_str.isdigit():
-            next_config["LESSONROOMID"] = int(room_id_str)
+    # 固定房间模式（多窗口）：不修改全局房间列表
+    if room_id is None:
+        if "room_ids" in update and isinstance(update["room_ids"], list):
+            clean_ids = [int(x) for x in update["room_ids"] if str(x).strip().isdigit()]
+            if clean_ids:
+                next_config["room_ids"] = clean_ids
+        elif "LESSONROOMID" in update:
+            # 兼容旧前端：单房间 ID
+            room_id_str = str(update["LESSONROOMID"]).strip()
+            if room_id_str.isdigit():
+                next_config["room_ids"] = [int(room_id_str)]
+
+    # 已迁移到 room_ids，移除磁盘上的旧字段
+    next_config.pop("LESSONROOMID", None)
 
     frontend = dict(next_config.get("frontend", {}))
     incoming_frontend = update.get("frontend", {})
@@ -142,7 +165,7 @@ def normalize_config_update(current_config, update):
                 features[key] = bool(incoming_features[key])
     next_config["features"] = features
 
-    room_id = get_room_id(next_config)
+    room_id = room_id or get_room_id(next_config)
     bindings = dict(next_config.get("room_bindings", {}))
     current_binding = dict(bindings.get(room_id, {}))
     group_id = str(update.get("GROUPID", current_binding.get("GROUPID", ""))).strip()
@@ -170,6 +193,8 @@ def normalize_config_update(current_config, update):
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
     next_config["features"].pop("enable_qq_notification", None)
+    # apply_room_binding 注入的运行时字段不写盘，避免与 room_bindings 重复
+    next_config["features"].pop("live_timed_danmu_list", None)
 
     # 滤词列表
     if "filter_words" in update:
@@ -180,9 +205,16 @@ def normalize_config_update(current_config, update):
     return next_config
 
 
-def build_frontend_config():
-    config = load_app_config()
+def build_frontend_config(room_id=None):
+    config = load_app_config(room_id)
     theme_config = load_theme_config()
+    effective_room = room_id or get_room_id(config)
+    if effective_room:
+        # 前端以 LESSONROOMID 读取当前窗口所属房间
+        config["LESSONROOMID"] = int(effective_room)
+    if room_id:
+        # 多窗口模式：每个窗口固定显示自己的房间 ID
+        config["roomFixed"] = True
     return {
         "config": config,
         "theme": load_selected_theme(config, theme_config),
@@ -191,13 +223,18 @@ def build_frontend_config():
 
 
 class FrontendConfigApi:
+    def __init__(self, room_id=None):
+        self.room_id = str(room_id).strip() if room_id else None
+
     def getFrontendConfig(self):
-        return build_frontend_config()
+        return build_frontend_config(self.room_id)
 
     def saveFrontendConfig(self, update):
         try:
-            current_config = load_app_config()
-            next_config = normalize_config_update(current_config, update or {})
+            current_config = load_app_config(self.room_id)
+            next_config = normalize_config_update(
+                current_config, update or {}, self.room_id
+            )
             save_app_config(next_config)
 
             # 用户滤词变更后刷新内存缓存
@@ -207,7 +244,7 @@ class FrontendConfigApi:
 
             return {
                 "ok": True,
-                "frontendConfig": build_frontend_config(),
+                "frontendConfig": build_frontend_config(self.room_id),
             }
         except Exception as e:
             print("保存前端配置失败：", e)

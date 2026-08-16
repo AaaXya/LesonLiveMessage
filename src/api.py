@@ -11,7 +11,7 @@ class CloseApi(FrontendConfigApi):
     """前后端 API 桥接 — webview js_api / HTTP 端点共用"""
 
     def __init__(self, ctx):
-        super().__init__()
+        super().__init__(room_id=ctx.fixed_room_id)
         self._ctx = ctx  # 下划线前缀：pywebview 不暴露给 JS，避免循环引用
 
     # ==================== 配置 ====================
