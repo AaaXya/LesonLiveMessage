@@ -69,8 +69,8 @@ async def live_start_handler(event, ctx):
             ctx.lesson_room_id,
         )
 
-    # 定时弹幕：开播后按列表中每条配置延迟发送弹幕
-    if ctx.features.get("enable_live_timed_danmu") and ctx.live_state == 1:
+    # 定时弹幕：直接读取该房间的 live_timed_danmu_list，开播后逐条延迟发送
+    if ctx.live_state == 1:
         danmu_list = ctx.features.get("live_timed_danmu_list", [])
         if isinstance(danmu_list, list):
             for item in danmu_list:

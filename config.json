@@ -1,7 +1,7 @@
 {
   "room_ids": [
     1879006019,
-    21801585
+    1933933419
   ],
   "room_bindings": {
     "1879006019": {
@@ -19,6 +19,11 @@
           "enabled": true
         }
       ]
+    },
+    "1933933419": {
+      "GROUPID": "",
+      "enable_qq_notification": false,
+      "live_timed_danmu_list": []
     }
   },
   "frontend": {
@@ -31,7 +36,6 @@
     "enable_live_start": true,
     "enable_gift": true,
     "enable_danmu_db": true,
-    "enable_live_timed_danmu": true,
     "web_debug": false,
     "open_mode": "webview"
   },

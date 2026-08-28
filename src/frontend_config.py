@@ -12,7 +12,6 @@ FEATURE_KEYS = (
     "enable_live_start",
     "enable_gift",
     "enable_danmu_db",
-    "enable_live_timed_danmu",
     "web_debug",
     "open_mode",
 )

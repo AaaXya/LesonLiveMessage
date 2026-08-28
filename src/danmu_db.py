@@ -92,8 +92,8 @@ def init_db(room_id):
 
 def save_danmu(danmu_dict: dict, room_id):
     now = datetime.datetime.now().isoformat()
-    # 直播间不存在则创建
-    # init_db(room_id)
+    # 确保直播间数据库与表存在（幂等）
+    init_db(room_id)
     conn = sqlite3.connect(get_room_db_file(room_id))
     cursor = conn.cursor()
 

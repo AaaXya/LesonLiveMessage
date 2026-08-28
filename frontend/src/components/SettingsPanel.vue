@@ -175,70 +175,50 @@ async function handleSave() {
 			</label>
 
 			<div class="settings-feature-block">
-				<label class="settings-check">
-					<input v-model="features.enable_live_timed_danmu" type="checkbox" />
-					{{ FEATURE_LABELS.enable_live_timed_danmu }}
-				</label>
+				<div class="settings-group-title" style="margin-top: 0">开播定时弹幕</div>
 				<div
-					class="settings-nested"
-					:class="{ 'is-disabled': !features.enable_live_timed_danmu }"
+					v-for="(item, idx) in liveTimedDanmuList"
+					:key="idx"
+					class="settings-timed-item"
 				>
-					<div
-						v-for="(item, idx) in liveTimedDanmuList"
-						:key="idx"
-						class="settings-timed-item"
-					>
-						<div class="settings-timed-item-header">
-							<label class="settings-check" style="margin-bottom: 0">
-								<input
-									v-model="item.enabled"
-									type="checkbox"
-									:disabled="!features.enable_live_timed_danmu"
-								/>
-								弹幕 #{{ idx + 1 }}
-							</label>
-							<button
-								type="button"
-								class="settings-timed-item-del"
-								:disabled="!features.enable_live_timed_danmu"
-								@click="removeTimedDanmu(idx)"
-							>
-								×
-							</button>
-						</div>
-						<label class="settings-field settings-field-nested">
-							延迟（秒）
-							<input
-								v-model.number="item.delay"
-								type="number"
-								inputmode="numeric"
-								min="1"
-								placeholder="300"
-								:disabled="!features.enable_live_timed_danmu"
-							/>
+					<div class="settings-timed-item-header">
+						<label class="settings-check" style="margin-bottom: 0">
+							<input v-model="item.enabled" type="checkbox" />
+							弹幕 #{{ idx + 1 }}
 						</label>
-						<label class="settings-field settings-field-nested">
-							弹幕内容
-							<input
-								v-model="item.text"
-								type="text"
-								maxlength="30"
-								placeholder="输入弹幕内容..."
-								:disabled="!features.enable_live_timed_danmu"
-							/>
-						</label>
+						<button
+							type="button"
+							class="settings-timed-item-del"
+							@click="removeTimedDanmu(idx)"
+						>
+							×
+						</button>
 					</div>
-					<button
-						type="button"
-						class="settings-timed-add-btn"
-						:disabled="!features.enable_live_timed_danmu"
-						@click="addTimedDanmu"
-					>
-						+ 添加一条定时弹幕
-					</button>
-					<div v-if="liveTimedDanmuList.length === 0" class="settings-filter-words-empty">
-						暂无定时弹幕，点击上方按钮添加
-					</div>
+					<label class="settings-field settings-field-nested">
+						延迟（秒）
+						<input
+							v-model.number="item.delay"
+							type="number"
+							inputmode="numeric"
+							min="1"
+							placeholder="300"
+						/>
+					</label>
+					<label class="settings-field settings-field-nested">
+						弹幕内容
+						<input
+							v-model="item.text"
+							type="text"
+							maxlength="30"
+							placeholder="输入弹幕内容..."
+						/>
+					</label>
+				</div>
+				<button type="button" class="settings-timed-add-btn" @click="addTimedDanmu">
+					+ 添加一条定时弹幕
+				</button>
+				<div v-if="liveTimedDanmuList.length === 0" class="settings-filter-words-empty">
+					暂无定时弹幕，点击上方按钮添加
 				</div>
 			</div>
 
