@@ -57,6 +57,24 @@ class CloseApi(FrontendConfigApi):
             except Exception as e:
                 print("切换最大化失败：", e)
 
+    def setWindowSize(self, preset):
+        """按预设调整当前窗口大小（webview 模式，即时生效）"""
+        from .frontend_config import WINDOW_SIZE_PRESETS
+
+        preset = str(preset or "").strip()
+        size = WINDOW_SIZE_PRESETS.get(preset)
+        if size is None:
+            return {"ok": False, "error": "未知的窗口大小预设"}
+
+        w = self._ctx.window
+        if w is not None:
+            try:
+                w.resize(size["width"], size["height"])
+            except Exception as e:
+                print("调整窗口大小失败：", e)
+                return {"ok": False, "error": str(e)}
+        return {"ok": True, "width": size["width"], "height": size["height"]}
+
     # ==================== 弹幕发送 ====================
 
     def sendDanmu(self, message):

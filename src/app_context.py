@@ -6,6 +6,7 @@ app_context.py — 共享应用状态容器
 import json
 import os
 import threading
+from collections import deque
 
 from . import PROJECT_ROOT
 from .frontend_config import apply_room_binding, get_room_ids, get_room_id
@@ -44,7 +45,7 @@ class AppContext:
         self._event_sink = None
 
         # ---- Web 模式事件队列 ----
-        self._event_queue = []
+        self._event_queue = deque()
         self._event_counter = 0
         self._event_lock = threading.Lock()
 
@@ -79,6 +80,9 @@ class AppContext:
         """推送到前端：优先外部 sink，其次 window JS，web 模式走事件队列"""
         if data is None:
             return
+        # 附加房间 ID，前端按房间隔离弹幕列表
+        if isinstance(data, dict) and data.get("room_id") is None:
+            data = {**data, "room_id": str(self.lesson_room_id)}
         if self._event_sink:
             self._event_sink(data)
             return
@@ -93,7 +97,7 @@ class AppContext:
             self._event_counter += 1
             self._event_queue.append({"id": self._event_counter, "data": data})
             if len(self._event_queue) > 500:
-                self._event_queue.pop(0)
+                self._event_queue.popleft()
 
     def get_events_since(self, since_id):
         """获取自 since_id 以来的事件（web 模式 API）"""

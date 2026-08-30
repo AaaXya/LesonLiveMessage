@@ -16,6 +16,23 @@ FEATURE_KEYS = (
     "open_mode",
 )
 
+# ---- webview 窗口大小预设 ----
+WINDOW_SIZE_PRESETS = {
+    "small": {"label": "小 (960×600)", "width": 960, "height": 600},
+    "default": {"label": "标准 (1200×700)", "width": 1200, "height": 700},
+    "large": {"label": "大 (1440×900)", "width": 1440, "height": 900},
+    "wide": {"label": "超宽 (1600×1000)", "width": 1600, "height": 1000},
+}
+DEFAULT_WINDOW_SIZE = "default"
+
+
+def get_window_size(config):
+    """返回 webview 窗口 (width, height)，读取 frontend.window_size 预设"""
+    frontend_config = config.get("frontend", {})
+    preset = str(frontend_config.get("window_size") or DEFAULT_WINDOW_SIZE)
+    size = WINDOW_SIZE_PRESETS.get(preset) or WINDOW_SIZE_PRESETS[DEFAULT_WINDOW_SIZE]
+    return size["width"], size["height"]
+
 
 def load_json(path, fallback):
     if not os.path.exists(path):
@@ -86,9 +103,12 @@ def load_app_config(room_id=None):
 
 
 def save_app_config(config):
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+    # 原子写入：先写临时文件再替换，避免写入中断损坏配置
+    tmp_path = CONFIG_PATH + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
         f.write("\n")
+    os.replace(tmp_path, CONFIG_PATH)
 
 
 def get_theme_options(theme_config):
@@ -158,6 +178,11 @@ def normalize_config_update(current_config, update, room_id=None):
         if theme_name not in theme_config.get("presets", {}):
             theme_name = theme_config.get("default", "default")
         frontend["theme"] = theme_name
+    if "window_size" in incoming_frontend:
+        window_size = str(incoming_frontend.get("window_size") or "").strip()
+        frontend["window_size"] = (
+            window_size if window_size in WINDOW_SIZE_PRESETS else DEFAULT_WINDOW_SIZE
+        )
     next_config["frontend"] = frontend
 
     features = dict(next_config.get("features", {}))
@@ -224,10 +249,16 @@ def build_frontend_config(room_id=None):
     if room_id:
         # 多窗口模式：每个窗口固定显示自己的房间 ID
         config["roomFixed"] = True
+    frontend_config = config.get("frontend", {})
     return {
         "config": config,
         "theme": load_selected_theme(config, theme_config),
         "themeOptions": get_theme_options(theme_config),
+        "windowSize": frontend_config.get("window_size") or DEFAULT_WINDOW_SIZE,
+        "windowSizeOptions": [
+            {"value": key, "label": item["label"]}
+            for key, item in WINDOW_SIZE_PRESETS.items()
+        ],
     }
 
 

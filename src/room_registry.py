@@ -46,21 +46,18 @@ def set_connected(room_id, connected: bool):
         status["connected"] = connected
         if connected:
             status["last_error"] = None
-        return dict(status)
 
 
 def set_live_state(room_id, live_state: int):
     with _lock:
         status = ensure_room(room_id)
         status["live_state"] = live_state
-        return dict(status)
 
 
 def set_error(room_id, error: str):
     with _lock:
         status = ensure_room(room_id)
         status["last_error"] = str(error)[:200] if error else None
-        return dict(status)
 
 
 def on_event(room_id, event_type: str):
@@ -71,7 +68,6 @@ def on_event(room_id, event_type: str):
             status["danmu_count"] += 1
         status["last_event_at"] = time.time()
         status["last_event_type"] = event_type
-        return dict(status)
 
 
 def get_all_rooms():

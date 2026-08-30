@@ -18,14 +18,16 @@ def _append(text: str):
     global _seq
     if not text:
         return
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return
+    # 一次锁内批量追加，避免高频输出时逐行加锁
     with _lock:
-        for line in text.splitlines():
-            if not line.strip():
-                continue
+        for line in lines:
             _seq += 1
             _lines.append({"seq": _seq, "time": None, "line": line})
-            if len(_lines) > MAX_LINES:
-                del _lines[: len(_lines) - MAX_LINES]
+        if len(_lines) > MAX_LINES:
+            del _lines[: len(_lines) - MAX_LINES]
 
 
 class _TeeWriter:

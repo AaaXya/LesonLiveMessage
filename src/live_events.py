@@ -14,7 +14,7 @@ from .danmu_parser import (
 )
 from .napcat_send import send_qq_group
 from .danmu_db import save_danmu, save_gift
-from .avatar_proxy import fetch_image_data_uri_uncompressed
+from .avatar_proxy import fetch_image_data_uri, fetch_image_data_uri_uncompressed
 from . import room_registry
 
 # ==================== 事件处理器 ====================
@@ -24,6 +24,10 @@ async def on_danmaku_handler(event, ctx):
     """弹幕消息"""
     parsed = parse_bilibili_danmu(event)
     if isinstance(parsed, dict):
+        face = parsed.get("avatar_url")
+        if face:
+            # 头像下载是阻塞网络请求，放线程池执行，避免卡住本房间事件循环
+            parsed["avatar_url"] = await asyncio.to_thread(fetch_image_data_uri, face)
         log_data = {k: v for k, v in parsed.items() if k != "avatar_url"}
     else:
         log_data = parsed
@@ -47,6 +51,9 @@ async def on_super_chat_handler(event, ctx):
     """超级留言"""
     parsed = parse_super_chat(event)
     if parsed:
+        face = parsed.get("avatar_url")
+        if face:
+            parsed["avatar_url"] = await asyncio.to_thread(fetch_image_data_uri, face)
         print("超级留言：", {k: v for k, v in parsed.items() if k != "avatar_url"})
         if ctx.features.get("enable_danmu_db"):
             save_danmu(parsed, ctx.lesson_room_id)
@@ -227,6 +234,7 @@ async def _room_connect_loop(room_obj, ctx):
 
             if established:
                 # 已建立连接：阻塞直到断开
+                retry_delay = 3  # 成功连接后重置退避延迟
                 room_registry.set_connected(ctx.lesson_room_id, True)
                 print(f"[{ctx.lesson_room_id}] ✓ 连接成功，开始监听", flush=True)
                 await connect_task
@@ -282,5 +290,6 @@ async def init_room_info(sender, ctx):
         ctx.lesson_room_id, room_title=ctx.room_title, room_cover=ctx.room_cover
     )
     room_registry.set_live_state(ctx.lesson_room_id, 1 if ctx.is_live else 0)
-    print("✓ 获取直播间信息成功", room_info["room_info"])
-    print("直播间信息：", ctx.room_title, ctx.room_cover)
+    print(
+        f"✓ 获取直播间信息成功：{ctx.room_title}（{'直播中' if ctx.is_live else '未开播'}）"
+    )

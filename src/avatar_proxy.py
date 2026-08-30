@@ -1,13 +1,23 @@
+import atexit
 import base64
 import io
 import json
 import os
 import threading
+import time
 
 import requests
 from PIL import Image
 
 from . import PROJECT_ROOT
+
+# B 站图片防盗链：统一请求头（带 Referer 否则 403）
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Referer": "https://www.bilibili.com/",
+    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+}
+HTTP_TIMEOUT = 8  # 图片下载超时（秒）
 
 avatar_cache = {}
 MAX_AVATAR_DIMENSION = 80
@@ -22,6 +32,57 @@ CACHE_DIR = os.path.join(PROJECT_ROOT, "data", "image_cache")
 CACHE_FILE = os.path.join(CACHE_DIR, "image_cache.json")
 
 _cache_lock = threading.Lock()
+
+# ---- 每线程一个 requests.Session（复用 TCP 连接池） ----
+_tls = threading.local()
+
+
+def _get_session():
+    session = getattr(_tls, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update(_HEADERS)
+        _tls.session = session
+    return session
+
+
+# ---- 并发去重：同一 URL 同一时刻只允许一个线程下载 ----
+_url_locks = {}
+_url_lock_usage = {}
+_url_locks_guard = threading.Lock()
+
+
+def _acquire_url_lock(url):
+    with _url_locks_guard:
+        lock = _url_locks.get(url)
+        if lock is None:
+            lock = threading.Lock()
+            _url_locks[url] = lock
+        _url_lock_usage[url] = _url_lock_usage.get(url, 0) + 1
+        return lock
+
+
+def _release_url_lock(url, lock):
+    with _url_locks_guard:
+        count = _url_lock_usage.get(url, 0) - 1
+        if count <= 0:
+            _url_locks.pop(url, None)
+            _url_lock_usage.pop(url, None)
+        else:
+            _url_lock_usage[url] = count
+
+
+# ---- 下载失败负缓存：短时间内不重复重试失败 URL ----
+_failed_at = {}
+NEGATIVE_CACHE_SECONDS = 60
+MAX_FAILED_ENTRIES = 2000
+
+
+def _remember_failure(url):
+    with _cache_lock:
+        if len(_failed_at) >= MAX_FAILED_ENTRIES:
+            _failed_at.clear()
+        _failed_at[url] = time.monotonic()
 
 
 def _load_cache():
@@ -42,14 +103,32 @@ def _load_cache():
         print("图片缓存加载失败:", e)
 
 
+# ---- 写盘节流：合并短时间内的多次更新，避免弹幕高峰期频繁写大文件 ----
+SAVE_INTERVAL = 5.0
+_save_state_lock = threading.Lock()
+_save_dirty = False
+
+
 def _save_cache():
-    """持久化图片缓存到磁盘（仅保存成功结果，失败的留待下次启动重试）"""
-    try:
+    """标记缓存有更新（由后台线程周期落盘）"""
+    global _save_dirty
+    with _save_state_lock:
+        _save_dirty = True
+
+
+def _flush_cache():
+    """将内存缓存落盘（仅保存成功结果，失败的留待下次启动重试）"""
+    global _save_dirty
+    with _save_state_lock:
+        if not _save_dirty:
+            return
         with _cache_lock:
             data = {
                 "avatar": {k: v for k, v in avatar_cache.items() if v},
                 "cover": {k: v for k, v in cover_cache.items() if v},
             }
+        _save_dirty = False
+    try:
         os.makedirs(CACHE_DIR, exist_ok=True)
         tmp_file = CACHE_FILE + ".tmp"
         with open(tmp_file, "w", encoding="utf-8") as f:
@@ -59,13 +138,29 @@ def _save_cache():
         print("图片缓存保存失败:", e)
 
 
-def _compress_image_bytes(image_bytes, fallback_content_type):
+def _start_cache_flusher():
+    """后台线程周期性落盘；程序退出时由 atexit 兜底"""
+
+    def _loop():
+        while True:
+            time.sleep(SAVE_INTERVAL)
+            _flush_cache()
+
+    threading.Thread(target=_loop, daemon=True, name="image-cache-flusher").start()
+
+
+_start_cache_flusher()
+atexit.register(_flush_cache)
+
+
+def _compress_image(image_bytes, max_dimension, jpeg_quality, fallback_content_type):
+    """压缩图片（长边缩放到 max_dimension），返回 (bytes, mime_type)；失败返回原图"""
     try:
         with Image.open(io.BytesIO(image_bytes)) as img:
             width, height = img.size
             max_side = max(width, height)
-            if max_side > MAX_AVATAR_DIMENSION:
-                scale = MAX_AVATAR_DIMENSION / max_side
+            if max_side > max_dimension:
+                scale = max_dimension / max_side
                 img = img.resize(
                     (int(width * scale), int(height * scale)), Image.LANCZOS
                 )
@@ -77,47 +172,62 @@ def _compress_image_bytes(image_bytes, fallback_content_type):
                 img.save(output, format="PNG", optimize=True)
                 return output.getvalue(), "image/png"
 
-            rgb_image = img.convert("RGB")
-            rgb_image.save(output, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+            img.convert("RGB").save(
+                output, format="JPEG", quality=jpeg_quality, optimize=True
+            )
             return output.getvalue(), "image/jpeg"
     except Exception as e:
-        print("头像压缩失败:", e)
+        print("图片压缩失败:", e)
         return image_bytes, fallback_content_type
 
 
-def fetch_image_data_uri(url):
-    """Fetch remote avatar and return a compressed data URI for frontend rendering."""
-    if not url or url.startswith("data:"):
-        return url
-    with _cache_lock:
-        if url in avatar_cache:
-            return avatar_cache[url]
-
+def _download_image(url):
+    """下载图片，返回 (bytes, content_type)；失败返回 (None, None)"""
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Referer": "https://www.bilibili.com/",
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
+        resp = _get_session().get(url, timeout=HTTP_TIMEOUT)
         resp.raise_for_status()
-        content_type = resp.headers.get("Content-Type", "")
+        content_type = resp.headers.get("Content-Type", "").strip() or "image/jpeg"
         if not content_type.startswith("image/"):
             raise ValueError(f"非图片响应: {content_type}")
-
-        image_bytes, mime_type = _compress_image_bytes(resp.content, content_type)
-        data_uri = (
-            f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        )
-        with _cache_lock:
-            avatar_cache[url] = data_uri
-        _save_cache()
-        return data_uri
+        return resp.content, content_type
     except Exception as e:
-        print(f"头像代理请求失败: {url} -> {e}")
-        with _cache_lock:
-            avatar_cache[url] = None
-        return None
+        print(f"图片下载失败: {url} -> {e}")
+        return None, None
+
+
+def fetch_image_data_uri(url):
+    """拉取头像并压缩为 data URI（带缓存，线程安全，同一 URL 并发只下载一次）"""
+    if not url or url.startswith("data:"):
+        return url
+
+    lock = _acquire_url_lock(url)
+    try:
+        with lock:
+            with _cache_lock:
+                cached = avatar_cache.get(url)
+            if cached:
+                return cached
+            with _cache_lock:
+                failed_at = _failed_at.get(url)
+            if failed_at and time.monotonic() - failed_at < NEGATIVE_CACHE_SECONDS:
+                return None
+
+            image_bytes, content_type = _download_image(url)
+            if image_bytes is None:
+                _remember_failure(url)
+                return None
+
+            image_bytes, mime_type = _compress_image(
+                image_bytes, MAX_AVATAR_DIMENSION, JPEG_QUALITY, content_type
+            )
+            data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+            with _cache_lock:
+                avatar_cache[url] = data_uri
+                _failed_at.pop(url, None)
+            _save_cache()
+            return data_uri
+    finally:
+        _release_url_lock(url, lock)
 
 
 def fetch_image_data_uri_uncompressed(url):
@@ -125,76 +235,39 @@ def fetch_image_data_uri_uncompressed(url):
     if not url or url.startswith("data:"):
         return url
 
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Referer": "https://www.bilibili.com/",
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        content_type = resp.headers.get("Content-Type", "image/jpeg")
-        data_uri = f"data:{content_type};base64,{base64.b64encode(resp.content).decode('ascii')}"
-        return data_uri
-    except Exception as e:
-        print(f"获取图片失败: {url} -> {e}")
+    image_bytes, content_type = _download_image(url)
+    if image_bytes is None:
         return None
-
-
-cover_cache = {}
-MAX_COVER_DIMENSION = 640
-COVER_JPEG_QUALITY = 80
+    return f"data:{content_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
 
 
 def fetch_cover_data_uri(url):
     """获取直播间封面并压缩为 data URI（带缓存），供前端直接展示。"""
     if not url or url.startswith("data:"):
         return url or None
-    with _cache_lock:
-        if url in cover_cache:
-            return cover_cache[url]
 
+    lock = _acquire_url_lock(url)
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Referer": "https://www.bilibili.com/",
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        }
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        content_type = resp.headers.get("Content-Type", "")
-        if not content_type.startswith("image/"):
-            raise ValueError(f"非图片响应: {content_type}")
+        with lock:
+            with _cache_lock:
+                cached = cover_cache.get(url)
+            if cached:
+                return cached
 
-        with Image.open(io.BytesIO(resp.content)) as img:
-            width, height = img.size
-            max_side = max(width, height)
-            if max_side > MAX_COVER_DIMENSION:
-                scale = MAX_COVER_DIMENSION / max_side
-                img = img.resize(
-                    (int(width * scale), int(height * scale)), Image.LANCZOS
-                )
-            output = io.BytesIO()
-            if img.mode in ("RGBA", "LA") or (
-                img.mode == "P" and "transparency" in img.info
-            ):
-                img.save(output, format="PNG", optimize=True)
-                mime_type = "image/png"
-            else:
-                img.convert("RGB").save(
-                    output, format="JPEG", quality=COVER_JPEG_QUALITY, optimize=True
-                )
-                mime_type = "image/jpeg"
+            image_bytes, content_type = _download_image(url)
+            if image_bytes is None:
+                return None
 
-        data_uri = f"data:{mime_type};base64,{base64.b64encode(output.getvalue()).decode('ascii')}"
-        with _cache_lock:
-            cover_cache[url] = data_uri
-        _save_cache()
-        return data_uri
-    except Exception as e:
-        print(f"封面代理请求失败: {url} -> {e}")
-        with _cache_lock:
-            cover_cache[url] = None
-        return None
+            image_bytes, mime_type = _compress_image(
+                image_bytes, MAX_COVER_DIMENSION, COVER_JPEG_QUALITY, content_type
+            )
+            data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+            with _cache_lock:
+                cover_cache[url] = data_uri
+            _save_cache()
+            return data_uri
+    finally:
+        _release_url_lock(url, lock)
 
 
 # 模块导入时加载磁盘缓存

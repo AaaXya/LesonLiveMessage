@@ -1,7 +1,5 @@
 import json
 
-from .avatar_proxy import fetch_image_data_uri
-
 
 def _safe_list(lst, index, default):
     if isinstance(lst, list) and len(lst) > index:
@@ -54,8 +52,8 @@ def parse_bilibili_danmu(raw_data):
         except Exception:
             extra = {}
 
+        # 头像返回原始 URL，由 live_events 在线程池中拉取（避免阻塞事件循环）
         avatar_url = _find_face(data) or _find_face(info)
-        avatar_url = fetch_image_data_uri(avatar_url)
 
         return {
             "type": "danmu",
@@ -171,7 +169,8 @@ def parse_super_chat(raw_data):
         medal_name = medal_info.get("medal_name", "")
         medal_level = medal_info.get("medal_level", 0)
 
-        avatar = fetch_image_data_uri(face_url) if face_url else None
+        # 头像返回原始 URL，由 live_events 在线程池中拉取
+        avatar = face_url or None
 
         return {
             "type": "super_chat",

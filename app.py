@@ -12,6 +12,7 @@ from src.room_manager import RoomManager
 from src.api import CloseApi
 from src.web_server import start_web_server
 from src.console_log import install as install_console_capture
+from src.frontend_config import get_window_size
 
 
 def resolve_frontend_index(base_path):
@@ -47,12 +48,14 @@ if __name__ == "__main__":
     else:
         # ===== Webview 模式（单窗口，前端按需监听） =====
         print("🪟 运行模式：桌面窗口 (webview)")
+        window_width, window_height = get_window_size(ctx.config)
+        print(f"窗口大小：{window_width}×{window_height}")
         ctx.window = webview.create_window(
             title="B站弹幕姬",
             url=resolve_frontend_index(base_path),
             js_api=CloseApi(ctx, room_manager),
-            width=1200,
-            height=700,
+            width=window_width,
+            height=window_height,
             frameless=True,
             on_top=True,
             transparent=True,
