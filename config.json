@@ -27,7 +27,8 @@
     }
   },
   "frontend": {
-    "theme": "ocean"
+    "theme": "default",
+    "window_size": "default"
   },
   "features": {
     "enable_danmaku": true,
