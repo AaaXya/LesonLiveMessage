@@ -3,18 +3,15 @@ import App from './App.vue'
 import router from './router'
 import DevUI from 'vue-devui'
 import 'vue-devui/style.css'
+import '@devui-design/icons/icomoon/devui-icon.css'
 import { pushDanmu } from './stores/danmu'
 import { initThemeLoader } from './composables/useTheme'
-import { restoreThemePalette } from './composables/useThemePalette'
 import { pollEvents } from './api/bridge'
 import './styles/base.css'
 import './styles/devui-theme.css'
 
 // 默认深色；布局栏可在运行时切换。
 document.documentElement.classList.add('dark')
-
-// 恢复用户保存的主题色
-restoreThemePalette()
 
 window.addDanmu = pushDanmu
 

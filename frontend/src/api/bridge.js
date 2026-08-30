@@ -119,6 +119,13 @@ export function toggleMaximizeWindow() {
 	}
 }
 
+export async function setWindowSize(preset) {
+	if (isWebMode()) {
+		return { ok: false, error: '网页模式不支持调整窗口大小' }
+	}
+	return callApi('setWindowSize', preset)
+}
+
 // 轮询获取弹幕事件（web 模式使用）
 let lastEventId = 0
 export async function pollEvents() {

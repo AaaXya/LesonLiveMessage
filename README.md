@@ -12,19 +12,21 @@
 - **自动重连** — 直播间连接断开后指数退避自动重连，无需手动重启
 - **多房间绑定** — 每个直播间可独立绑定不同的 QQ 群，互不干扰
 - **头像代理压缩** — 自动拉取用户头像并压缩，减少前端渲染压力
-- **主题系统** — 内置多套配色主题（默认亮彩、深海青蓝、樱粉等），支持自定义
+- **主题系统** — 内置 10 套配色主题（5 套场景主题 + 5 套主题色预设），统一在「主题模式」中切换
+- **明暗模式** — 侧边栏一键切换深色 / 浅色，浅色模式使用独立浅色变量
+- **窗口大小预设** — 小 / 标准 / 大 / 超宽四档窗口尺寸，设置页即时生效并持久化
 - **弹幕持久化** — 使用 SQLite 本地存储弹幕记录，按房间分库
 - **B站扫码登录** — 支持扫码登录获取 Cookie，持久化保存
 
 ## 🛠 技术栈
 
-| 层级 | 技术                                  |
-| ---- | ------------------------------------- |
-| 后端 | Python 3, `bilibili-api`, `pywebview` |
-| 前端 | Vue 3, Vite, 原生 CSS                 |
-| 数据 | SQLite（弹幕存储）                    |
-| 推送 | NapCat HTTP API                       |
-| 图像 | Pillow（头像压缩）                    |
+| 层级 | 技术                                            |
+| ---- | ----------------------------------------------- |
+| 后端 | Python 3, `bilibili-api`, `pywebview`           |
+| 前端 | Vue 3, Vite, vue-devui（DevUI 组件 + 图标字体） |
+| 数据 | SQLite（弹幕存储）                              |
+| 推送 | NapCat HTTP API                                 |
+| 图像 | Pillow（头像压缩）                              |
 
 ## 📁 项目结构
 
@@ -44,7 +46,9 @@ runlivetest/
 │   ├── napcat_send.py      # QQ 群消息推送（NapCat）
 │   └── avatar_proxy.py     # 头像拉取与压缩
 ├── scripts/                # 工具脚本
-│   └── migrate_danmu_db.py # 弹幕数据库迁移工具
+│   ├── migrate_danmu_db.py    # 弹幕数据库迁移工具
+│   ├── update_theme_presets.py # 主题预设升级/合并工具
+│   └── diag_connect.py        # 连接诊断工具
 ├── frontend/               # Vue 3 前端项目
 │   ├── package.json
 │   ├── vite.config.js
@@ -53,6 +57,9 @@ runlivetest/
 │       ├── main.js
 │       ├── constants.js
 │       ├── api/bridge.js              # 前后端桥接通信
+│       ├── layout/AppLayout.vue       # 侧边栏 + 标题栏布局（明暗切换）
+│       ├── views/                     # 各路由页面（直播间/控制台/数据库/礼物/分析/设置）
+│       ├── router/                    # 前端路由
 │       ├── components/
 │       │   ├── DanmuList.vue          # 弹幕列表（含滚动按钮）
 │       │   ├── DanmuItem.vue          # 单条弹幕
@@ -61,14 +68,15 @@ runlivetest/
 │       │   ├── GuardItem.vue          # 舰队消息
 │       │   ├── SuperChatItem.vue      # SC 醒目留言（置顶+倒计时）
 │       │   ├── SettingsPanel.vue      # 设置面板
-│       │   └── WindowControls.vue     # 窗口控制按钮
+│       │   └── WindowControls.vue     # 窗口控制按钮（d-button + d-icon）
 │       ├── composables/
-│       │   ├── useSettings.js
-│       │   └── useTheme.js
+│       │   ├── useSettings.js         # 设置页状态
+│       │   └── useTheme.js            # 主题配置加载与应用
 │       ├── stores/
-│       │   └── danmu.js               # 弹幕/SC 状态管理
+│       │   └── danmu.js               # 弹幕/SC 状态管理（按房间隔离）
 │       └── styles/
-│           └── base.css               # 全局 CSS 变量 + 滚动条 + reset
+│           ├── base.css               # 全局 CSS 变量 + 明暗模式 + reset
+│           └── devui-theme.css        # DevUI 令牌映射与组件微调
 ├── data/                   # 弹幕数据库存放目录
 ├── config.json             # 主配置文件
 ├── theme.json              # 主题预设配色
@@ -146,17 +154,18 @@ cd ..
 }
 ```
 
-| 字段                 | 说明                                                      |
-| -------------------- | --------------------------------------------------------- |
-| `room_ids`           | 监听的直播间 ID 数组，webview 模式下每个房间一个窗口      |
-| `room_bindings`      | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号                  |
-| `frontend.theme`     | 主题名，可选 `default` / `ocean` / `sakura` 等            |
-| `features`           | 功能开关，控制各类消息的显示和推送                        |
-| `features.open_mode` | 运行模式：`"webview"`（桌面窗口）或 `"web"`（浏览器网页） |
+| 字段                   | 说明                                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `room_ids`             | 监听的直播间 ID 数组，webview 模式下每个房间一个窗口                                                            |
+| `room_bindings`        | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号                                                                        |
+| `frontend.theme`       | 主题名，可选 `default` / `ocean` / `sakura` / `forest` / `dark` / `green` / `blue` / `purple` / `pink` / `teal` |
+| `frontend.window_size` | 窗口大小预设：`small` / `default` / `large` / `wide`                                                            |
+| `features`             | 功能开关，控制各类消息的显示和推送                                                                              |
+| `features.open_mode`   | 运行模式：`"webview"`（桌面窗口）或 `"web"`（浏览器网页）                                                       |
 
-### 多窗口多房间（webview 模式）
+### 单窗口多房间按需监听
 
-在 `room_ids` 中配置多个房间后，以 `"webview"` 模式启动应用，**每个房间会各自创建一个独立悬浮窗**，分别监听对应直播间，互不干扰。各窗口设置面板中的直播间 ID 为只读，QQ 群、开播通知、定时弹幕等配置仅对该窗口的房间生效。
+webview 模式为**单窗口**：在 `room_ids` 中配置多个房间后，在「直播间」页面点击房间卡片即可按需开始/停止监听，弹幕流按房间隔离显示。QQ 群、开播通知、定时弹幕等配置通过 `room_bindings` 按房间独立生效。
 
 | 字段                     | 说明                                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------- |
@@ -189,11 +198,20 @@ python app.py
 
 ## 🎨 主题配置
 
-`theme.json` 中预设了多套主题，可在 `config.json` 的 `frontend.theme` 中切换。也可在 `theme.json` 的 `presets` 中添加自定义主题。
+`theme.json` 内置 10 套预设：
+
+- 场景主题：`default` 默认亮彩 / `ocean` 深海青蓝 / `sakura` 樱粉夜色 / `forest` 森林暖光 / `dark` 极暗之夜
+- 主题色预设：`green` 翠绿 / `blue` 海蓝 / `purple` 薰衣草 / `pink` 樱花粉 / `teal` 孔雀青
+
+在设置页「主题模式」中选择并保存后写入 `config.json` 的 `frontend.theme`，下次启动自动应用。每套预设的颜色会同时映射到自定义 CSS 变量与 DevUI 设计令牌（`--devui-brand`、`--devui-base-bg` 等），DevUI 组件自动跟随主题。新增主题色时可用脚本同步生成完整预设：
+
+```bash
+python scripts\update_theme_presets.py
+```
 
 ## 🏗 架构说明
 
-所有前端样式均以 Vue `<style scoped>` 形式写入各自组件，不再使用全局 CSS 文件。仅 `base.css` 保留 CSS 变量定义和全局 reset。
+组件样式以 Vue `<style scoped>` 为主；全局仅保留 `base.css`（CSS 变量、明暗模式、reset）与 `devui-theme.css`（`--devui-*` 令牌映射、DevUI 组件微调）。主题预设颜色在启动/保存时由 `applyThemeColors` 写入根元素，DevUI 组件通过 `--devui-brand` 等令牌自动跟随主题。
 
 后端事件处理器通过 `AppContext.send_to_frontend()` 向 WebView 注入 `addDanmu(data)` 调用（web 模式下通过事件队列轮询），前端 `stores/danmu.js` 根据 `data.type` 分流：
 

@@ -12,35 +12,36 @@ async function handleClose() {
 
 <template>
 	<div class="window-controls">
-		<button class="win-btn win-min" title="最小化" type="button" @click="minimizeWindow">
-			<svg width="10" height="10" viewBox="0 0 10 10">
-				<line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1" />
-			</svg>
-		</button>
-		<button
+		<d-button
+			class="win-btn win-min"
+			variant="text"
+			color="secondary"
+			native-type="button"
+			title="最小化"
+			@click="minimizeWindow"
+		>
+			<d-icon name="minus" :size="12" />
+		</d-button>
+		<d-button
 			class="win-btn win-max"
+			variant="text"
+			color="secondary"
+			native-type="button"
 			title="最大化 / 还原"
-			type="button"
 			@click="toggleMaximizeWindow"
 		>
-			<svg width="10" height="10" viewBox="0 0 10 10">
-				<rect
-					x="0.5"
-					y="0.5"
-					width="9"
-					height="9"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1"
-				/>
-			</svg>
-		</button>
-		<button class="win-btn win-close" title="关闭" type="button" @click="handleClose">
-			<svg width="10" height="10" viewBox="0 0 10 10">
-				<line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1" />
-				<line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1" />
-			</svg>
-		</button>
+			<d-icon name="copy" :size="12" />
+		</d-button>
+		<d-button
+			class="win-btn win-close"
+			variant="text"
+			color="secondary"
+			native-type="button"
+			title="关闭"
+			@click="handleClose"
+		>
+			<d-icon name="close" :size="12" />
+		</d-button>
 	</div>
 </template>
 
@@ -63,18 +64,25 @@ async function handleClose() {
 	align-items: center;
 	justify-content: center;
 	border: none;
+	border-radius: 0;
 	background: transparent;
 	color: var(--text-muted, #9aa5ad);
 	cursor: pointer;
 	padding: 0;
+	min-width: 0;
 	transition:
 		background 0.12s ease,
 		color 0.12s ease;
 	outline: none;
 }
 
-.win-btn svg {
-	display: block;
+/* 禁用 DevUI 按钮的波纹与按压缩放，避免透明窗口下的合成层问题 */
+.win-btn :deep(.water-wave) {
+	display: none;
+}
+
+.win-btn.mousedown:not(:disabled) {
+	transform: none;
 }
 
 .win-min:hover,

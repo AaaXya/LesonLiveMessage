@@ -7,12 +7,12 @@ const route = useRoute()
 const router = useRouter()
 const isLight = ref(localStorage.getItem('color-mode') === 'light')
 const menuItems = [
-	{ name: 'rooms', label: '直播间', icon: '●' },
-	{ name: 'console', label: '控制台', icon: '›_' },
-	{ name: 'database', label: '弹幕数据库', icon: '□' },
-	{ name: 'gifts', label: '礼物数据库', icon: '◇' },
-	{ name: 'analytics', label: '数据分析', icon: '↗' },
-	{ name: 'settings', label: '设置', icon: '⚙' },
+	{ name: 'rooms', label: '直播间', icon: 'op-home' },
+	{ name: 'console', label: '控制台', icon: 'response-header' },
+	{ name: 'database', label: '弹幕数据', icon: 'database' },
+	{ name: 'gifts', label: '礼物数据', icon: 'buy' },
+	{ name: 'analytics', label: '数据分析', icon: 'chart' },
+	{ name: 'settings', label: '设置', icon: 'setting' },
 ]
 const activeName = computed(() => route.name)
 function navigate(name) {
@@ -44,8 +44,8 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 					:class="{ active: activeName === item.name }"
 					@click="navigate(item.name)"
 				>
-					<span class="nav-icon">{{ item.icon }}</span>
-					<span>{{ item.label }}</span>
+					<d-icon :name="item.icon" :size="16" class="nav-icon" />
+					<span class="nav-label">{{ item.label }}</span>
 				</d-button>
 			</nav>
 			<d-button
@@ -54,7 +54,8 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 				color="secondary"
 				@click="toggleColorMode"
 			>
-				{{ isLight ? '☾ 深色' : '☀ 浅色' }}
+				<d-icon :name="isLight ? 'dark' : 'light'" :size="16" />
+				{{ isLight ? '深色' : '浅色' }}
 			</d-button>
 		</aside>
 		<div class="main">
@@ -72,7 +73,9 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 	display: flex;
 	width: 100%;
 	height: 100vh;
-	background: transparent;
+	background:
+		radial-gradient(circle at top left, var(--accent-soft), transparent 26%),
+		radial-gradient(circle at top right, var(--accent-ghost), transparent 28%), var(--page-bg);
 }
 .sidebar {
 	display: flex;
@@ -101,8 +104,8 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 	width: 32px;
 	height: 32px;
 	border-radius: 10px;
-	background: linear-gradient(135deg, #6fb969 0%, #5eccc4 100%);
-	box-shadow: 0 10px 18px rgba(111, 185, 105, 0.38);
+	background: var(--bubble-gradient);
+	box-shadow: 0 10px 18px var(--shadow);
 	color: #fff;
 	font-size: 13px;
 	font-weight: 700;
@@ -128,26 +131,42 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 .nav-item:hover {
 	background: var(--surface-hover);
 	color: var(--text-primary);
-	border-color: rgba(111, 185, 105, 0.14);
+	border-color: var(--border);
 }
 .nav-item.active {
-	background: linear-gradient(135deg, rgba(111, 185, 105, 0.16), rgba(94, 204, 196, 0.08));
+	background: var(--bubble-gradient);
 	color: var(--text-primary);
-	border-color: rgba(111, 185, 105, 0.24);
+	border-color: transparent;
 	font-weight: 700;
 }
 .nav-icon {
+	display: block;
 	width: 18px;
 	text-align: center;
 	font-size: 16px;
 	opacity: 0.9;
 	line-height: 1;
 }
+.nav-item :deep(.button-content) {
+	display: grid;
+	grid-template-columns: 18px 1fr 18px;
+	align-items: center;
+	width: 100%;
+}
+.nav-label {
+	grid-column: 2;
+	text-align: center;
+}
 .mode-switch {
 	margin-top: auto;
 	width: 100%;
-	justify-content: flex-start;
+	justify-content: center;
 	border-radius: 12px;
+}
+.mode-switch :deep(.button-content) {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 .main {
 	display: flex;
@@ -161,7 +180,7 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 	height: 58px;
 	padding: 0 22px;
 	border-bottom: 1px solid var(--border);
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+	background: linear-gradient(180deg, var(--surface-strong), var(--surface));
 	backdrop-filter: blur(10px);
 }
 .page-title {

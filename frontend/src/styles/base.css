@@ -5,19 +5,19 @@
 	--bg-elevated: #2a2420;
 
 	/* 辅助色 - 卡片与区块（30%） */
-	--surface: rgba(42, 36, 32, 0.92);
-	--surface-strong: #2a2420;
-	--surface-hover: #35302a;
-	--surface-soft: rgba(111, 185, 105, 0.08);
+	--surface: var(--theme-surface, rgba(42, 36, 32, 0.92));
+	--surface-strong: var(--theme-surface-strong, #2a2420);
+	--surface-hover: var(--theme-surface-hover, #35302a);
+	--surface-soft: var(--theme-surface-soft, rgba(111, 185, 105, 0.08));
 
 	/* 文本颜色 */
-	--text-primary: #f5f2ed;
-	--text-muted: #b8b1a8;
-	--text-placeholder: #8d8680;
+	--text-primary: var(--theme-text-primary, #f5f2ed);
+	--text-muted: var(--theme-text-muted, #b8b1a8);
+	--text-placeholder: var(--theme-text-placeholder, #8d8680);
 
 	/* 边框 */
-	--border: rgba(61, 55, 47, 0.6);
-	--border-strong: rgba(212, 165, 116, 0.2);
+	--border: var(--theme-border, rgba(61, 55, 47, 0.6));
+	--border-strong: var(--theme-border-strong, rgba(212, 165, 116, 0.2));
 
 	/* 强调色（10%） */
 	--accent: #7bc67b;
@@ -40,7 +40,7 @@
 
 	/* 其他 */
 	--shadow: rgba(26, 24, 21, 0.4);
-	--page-bg: var(--bg);
+	--page-bg: var(--theme-page-bg, var(--bg));
 	--surface-active: var(--accent-soft);
 	--scrollbar-thumb: rgba(111, 185, 105, 0.4);
 	--button-bg: rgba(42, 36, 32, 0.8);
@@ -120,8 +120,8 @@ body,
 }
 body {
 	background:
-		radial-gradient(circle at top left, rgba(111, 185, 105, 0.08), transparent 26%),
-		radial-gradient(circle at top right, rgba(94, 204, 196, 0.06), transparent 28%), var(--bg);
+		radial-gradient(circle at top left, var(--accent-soft), transparent 26%),
+		radial-gradient(circle at top right, var(--accent-ghost), transparent 28%), var(--page-bg);
 	color: var(--text-primary);
 	font:
 		14px/1.5 Inter,
@@ -170,7 +170,6 @@ button:disabled {
 	color: var(--text-primary);
 	font-weight: 600;
 	transition:
-		transform 0.18s ease,
 		background 0.18s ease,
 		border-color 0.18s ease,
 		box-shadow 0.18s ease;
@@ -179,7 +178,6 @@ button:disabled {
 	background: var(--surface-hover);
 	border-color: var(--border-strong);
 	box-shadow: 0 10px 18px rgba(80, 96, 160, 0.12);
-	transform: translateY(-1px);
 }
 .btn-primary {
 	color: #fff;

@@ -50,7 +50,7 @@ const priceText = computed(() => {
 	margin-bottom: 8px;
 	background: linear-gradient(135deg, rgba(60, 140, 255, 0.18), rgba(80, 100, 255, 0.1));
 	border: 1px solid rgba(80, 140, 255, 0.25);
-	color: var(--text-primary);
+	color: var(--theme-text-primary, var(--text-primary));
 	animation: guardIn 0.35s ease;
 }
 
@@ -107,11 +107,9 @@ const priceText = computed(() => {
 @keyframes guardIn {
 	from {
 		opacity: 0;
-		transform: translateX(8px);
 	}
 	to {
 		opacity: 1;
-		transform: translateX(0);
 	}
 }
 </style>

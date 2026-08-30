@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { getRoomsStatus, startRoomListen, stopRoomListen } from '../api/bridge'
+import { clearRoom } from '../stores/danmu'
 import DanmuList from '../components/DanmuList.vue'
 
 const rooms = ref([])
@@ -13,11 +14,10 @@ async function refresh() {
 		const res = await getRoomsStatus()
 		if (res?.ok) {
 			rooms.value = res.rooms || []
-			// 同步更新 selectedRoom 的数据
+			// 同步更新 selectedRoom 的数据（找不到时保留旧对象，避免视图闪回列表）
 			if (selectedRoom.value) {
-				selectedRoom.value = rooms.value.find(
-					(r) => r.room_id === selectedRoom.value.room_id,
-				)
+				const found = rooms.value.find((r) => r.room_id === selectedRoom.value.room_id)
+				if (found) selectedRoom.value = found
 			}
 		}
 	} catch {
@@ -53,6 +53,8 @@ async function toggleListen(room) {
 			const res = await stopRoomListen(room.room_id)
 			if (!res?.ok) notice.value = res?.error || '操作失败'
 			await refresh()
+			// 清理该房间的弹幕缓存，重新监听时从空白开始
+			clearRoom(room.room_id)
 			// 如果停止的是当前选中的房间，返回列表
 			if (selectedRoom.value?.room_id === room.room_id) {
 				selectedRoom.value = null
@@ -79,6 +81,11 @@ async function toggleListen(room) {
 
 function handleBack() {
 	selectedRoom.value = null
+}
+
+function openStream(room) {
+	// 点击房间卡片进入弹幕流视图（未监听时显示提示）
+	selectedRoom.value = room
 }
 
 function onCoverError(room) {
@@ -109,7 +116,12 @@ onUnmounted(() => clearInterval(timer))
 				</span>
 			</div>
 			<div class="stream-container">
-				<DanmuList />
+				<DanmuList v-if="selectedRoom.listening" :room-id="selectedRoom.room_id" />
+				<div v-else class="stream-empty">
+					<div class="stream-empty-icon">📡</div>
+					<div>该房间未在监听中，暂无弹幕流</div>
+					<div class="stream-empty-hint">返回列表点击「开始监听」</div>
+				</div>
 			</div>
 		</div>
 
@@ -117,7 +129,12 @@ onUnmounted(() => clearInterval(timer))
 		<div v-else class="list-view">
 			<p v-if="notice" class="notice">{{ notice }}</p>
 			<div v-if="rooms.length" class="room-grid">
-				<d-card v-for="room in rooms" :key="room.room_id" class="room-card">
+				<d-card
+					v-for="room in rooms"
+					:key="room.room_id"
+					class="room-card clickable"
+					@click="openStream(room)"
+				>
 					<template #default>
 						<div v-if="room.cover" class="room-cover-wrapper">
 							<img
@@ -163,7 +180,7 @@ onUnmounted(() => clearInterval(timer))
 									:color="room.listening ? 'secondary' : 'primary'"
 									:variant="room.listening ? 'outline' : 'solid'"
 									:disabled="togglingIds.has(room.room_id)"
-									@click="toggleListen(room)"
+									@click.stop="toggleListen(room)"
 									>{{ room.listening ? '停止监听' : '开始监听' }}</d-button
 								>
 							</div>
@@ -207,6 +224,18 @@ onUnmounted(() => clearInterval(timer))
 
 .room-card {
 	overflow: hidden;
+}
+
+.room-card.clickable {
+	cursor: pointer;
+	transition:
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.room-card.clickable:hover {
+	border-color: var(--accent);
+	box-shadow: 0 6px 18px var(--shadow);
 }
 
 .room-cover-wrapper {
@@ -403,5 +432,27 @@ onUnmounted(() => clearInterval(timer))
 .stream-container {
 	flex: 1;
 	overflow: auto;
+}
+
+.stream-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 100%;
+	color: var(--text-muted);
+	font-size: 14px;
+	text-align: center;
+}
+
+.stream-empty-icon {
+	font-size: 40px;
+	opacity: 0.6;
+}
+
+.stream-empty-hint {
+	font-size: 12px;
+	opacity: 0.8;
 }
 </style>

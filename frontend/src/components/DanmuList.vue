@@ -1,10 +1,20 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { danmuItems } from '../stores/danmu'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { getDanmuItems } from '../stores/danmu'
 import DanmuItem from './DanmuItem.vue'
 import GiftItem from './GiftItem.vue'
 import GuardItem from './GuardItem.vue'
 import SuperChatItem from './SuperChatItem.vue'
+
+const props = defineProps({
+	roomId: {
+		type: [String, Number],
+		default: '',
+	},
+})
+
+// 按房间读取弹幕列表（无 roomId 时使用合并默认桶）
+const items = computed(() => getDanmuItems(props.roomId))
 
 const listRef = ref(null)
 const showScrollButton = ref(false)
@@ -51,7 +61,7 @@ function onUserScroll() {
 }
 
 watch(
-	danmuItems,
+	items,
 	async () => {
 		await nextTick()
 		if (!userScrolled) {
@@ -75,9 +85,9 @@ defineExpose({ scrollToBottom })
 </script>
 
 <template>
-	<SuperChatItem />
+	<SuperChatItem :room-id="String(roomId || '') || undefined" />
 	<div ref="listRef" class="danmu-list" @scroll="onUserScroll">
-		<template v-for="(item, index) in danmuItems" :key="index">
+		<template v-for="(item, index) in items" :key="index">
 			<DanmuItem v-if="item.type === 'danmu'" :data="item" />
 			<GiftItem v-else-if="item.type === 'gift'" :data="item" />
 			<GuardItem v-else-if="item.type === 'GUARD_BUY'" :data="item" />
@@ -134,13 +144,10 @@ defineExpose({ scrollToBottom })
 	color: var(--text-primary);
 	cursor: pointer;
 	font-size: 0.95rem;
-	transition:
-		background 0.2s ease,
-		transform 0.2s ease;
+	transition: background 0.2s ease;
 }
 
 .scroll-btn:hover {
 	background: var(--surface-hover);
-	transform: translateY(-1px);
 }
 </style>

@@ -63,6 +63,12 @@ export function applyThemePalette(paletteKey = 'green') {
 	root.style.setProperty('--warning', palette.warning)
 	root.style.setProperty('--danger', palette.danger)
 
+	// 同步 DevUI token，让 DevUI 组件跟随主题色
+	root.style.setProperty('--devui-brand', palette.accent)
+	root.style.setProperty('--devui-brand-hover', palette.accentStrong)
+	root.style.setProperty('--devui-brand-active', palette.accentStrong)
+	root.style.setProperty('--devui-primary', palette.accent)
+
 	// 更新相关的渐变和阴影
 	root.style.setProperty(
 		'--send-gradient',

@@ -3,29 +3,35 @@ import { computed, onMounted, ref } from 'vue'
 import { FEATURE_KEYS, FEATURE_LABELS, OPEN_MODE_OPTIONS } from '../constants'
 import { useSettings } from '../composables/useSettings'
 import { frontendConfig } from '../composables/useTheme'
-import {
-	THEME_PALETTE_OPTIONS,
-	applyThemePalette,
-	getSavedThemePalette,
-} from '../composables/useThemePalette'
+import { setWindowSize } from '../api/bridge'
 
 const visible = ref(false)
-const themePalette = ref(getSavedThemePalette())
 const {
 	status,
 	roomId,
 	roomFixed,
 	groupId,
 	theme,
+	windowSize,
 	features,
 	enableQqNotification,
 	themeOptions,
+	windowSizeOptions,
 	liveStartEnabled,
 	filterWords,
 	save,
 } = useSettings(visible)
 
 const newFilter = ref('')
+
+// d-select 的 options 需要 { name, value } 格式
+const themeSelectOptions = computed(() =>
+	themeOptions.value.map((opt) => ({ name: opt.label, value: opt.value })),
+)
+const openModeSelectOptions = OPEN_MODE_OPTIONS.map((opt) => ({
+	name: opt.label,
+	value: opt.value,
+}))
 
 const roomOptions = computed(() => {
 	const ids = new Set()
@@ -50,8 +56,11 @@ function addFilter() {
 	newFilter.value = ''
 }
 
-function handleThemePaletteChange(palette) {
-	applyThemePalette(palette)
+async function handleWindowSizeChange(value) {
+	const res = await setWindowSize(value)
+	status.value = res?.ok
+		? '窗口大小已调整，保存后下次启动自动使用'
+		: res?.error || '调整窗口大小失败'
 }
 
 onMounted(() => {
@@ -78,42 +87,28 @@ onMounted(() => {
 					/>
 				</div>
 			</label>
-			<div class="grid">
-				<label
-					>主题模式<select v-model="theme" class="control">
-						<option v-for="item in themeOptions" :key="item.value" :value="item.value">
-							{{ item.label }}
-						</option>
-					</select></label
-				>
-				<label
-					>主题色<select
-						v-model="themePalette"
-						class="control"
-						@change="handleThemePaletteChange"
-					>
-						<option
-							v-for="item in THEME_PALETTE_OPTIONS"
-							:key="item.value"
-							:value="item.value"
-						>
-							{{ item.label }}
-						</option>
-					</select></label
-				>
+			<div class="settings-grid">
+				<label>主题模式<d-select v-model="theme" :options="themeSelectOptions" /></label>
 			</div>
-			<div class="grid">
+			<div class="settings-grid">
 				<label
-					>运行模式<select v-model="features.open_mode" class="control">
-						<option
-							v-for="item in OPEN_MODE_OPTIONS"
-							:key="item.value"
-							:value="item.value"
-						>
-							{{ item.label }}
-						</option>
-					</select></label
+					>运行模式<d-select
+						v-model="features.open_mode"
+						:options="openModeSelectOptions"
+				/></label>
+			</div>
+			<div class="section-label">窗口大小</div>
+			<div class="window-size">
+				<d-radio-group
+					v-model="windowSize"
+					direction="row"
+					@change="handleWindowSizeChange"
 				>
+					<d-radio v-for="opt in windowSizeOptions" :key="opt.value" :value="opt.value">
+						{{ opt.label }}
+					</d-radio>
+				</d-radio-group>
+				<span class="window-size-hint">选择后立即生效，保存后下次启动自动使用</span>
 			</div>
 			<div class="section-label">功能开关</div>
 			<div class="checks">
@@ -173,7 +168,8 @@ onMounted(() => {
 	gap: 16px;
 }
 .form label {
-	display: grid;
+	display: flex;
+	flex-direction: column;
 	gap: 6px;
 	color: var(--text-muted);
 	font-size: 13px;
@@ -183,10 +179,25 @@ onMounted(() => {
 	grid-template-columns: minmax(170px, 1fr) minmax(180px, 1.2fr);
 	gap: 8px;
 }
-.grid {
+.settings-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 14px;
+}
+.settings-grid label {
+	min-width: 0;
+}
+.window-size {
+	display: grid;
+	gap: 6px;
+}
+.window-size-hint {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+:deep(.devui-select) {
+	width: 100%;
+	min-width: 0;
 }
 .section-label {
 	font-weight: 650;

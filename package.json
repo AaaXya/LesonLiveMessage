@@ -1,7 +1,7 @@
 {
     "name": "runlivetest",
     "private": true,
-    "version": "1.0.0",
+    "version": "1.1.0",
     "scripts": {
         "build": "cd frontend && npm run build",
         "dev": "cd frontend && npm run dev"

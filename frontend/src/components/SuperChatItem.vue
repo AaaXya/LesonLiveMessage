@@ -1,6 +1,16 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { superChat } from '../stores/danmu'
+import { ref, computed, onUnmounted, watch } from 'vue'
+import { getSuperChat } from '../stores/danmu'
+
+const props = defineProps({
+	roomId: {
+		type: [String, Number],
+		default: '',
+	},
+})
+
+// 按房间读取当前超级留言
+const superChat = computed(() => getSuperChat(props.roomId))
 
 const remaining = ref(0)
 const visible = ref(false)
@@ -25,7 +35,6 @@ function startCountdown(sc) {
 		if (left <= 0) {
 			clearTimer()
 			visible.value = false
-			superChat.value = null
 		}
 	}
 	update()
@@ -161,7 +170,7 @@ onUnmounted(clearTimer)
 }
 
 .sc-message {
-	color: var(--text-primary);
+	color: var(--theme-text-primary, var(--text-primary));
 	font-size: 0.92rem;
 	line-height: 1.5;
 	word-break: break-word;
@@ -170,11 +179,9 @@ onUnmounted(clearTimer)
 @keyframes scSlideIn {
 	from {
 		opacity: 0;
-		transform: translateY(-10px);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0);
 	}
 }
 </style>

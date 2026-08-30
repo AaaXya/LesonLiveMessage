@@ -42,7 +42,7 @@ function hideAvatar() {
 	padding: 4px 0;
 	margin-bottom: 10px;
 	animation: fadeIn 0.25s ease;
-	color: var(--text-primary);
+	color: var(--theme-text-primary, var(--text-primary));
 }
 
 .danmu-avatar {
@@ -81,7 +81,6 @@ function hideAvatar() {
 	box-shadow: 0 10px 24px var(--bubble-shadow);
 	background-clip: padding-box;
 	-webkit-font-smoothing: antialiased;
-	will-change: transform;
 }
 
 .medal {
@@ -97,11 +96,9 @@ function hideAvatar() {
 @keyframes fadeIn {
 	from {
 		opacity: 0;
-		transform: translateY(10px);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0);
 	}
 }
 </style>

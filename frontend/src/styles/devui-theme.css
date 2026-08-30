@@ -2,12 +2,15 @@
 
 /* 覆盖DevUI的全局变量 */
 :root {
-	/* DevUI 主题色 */
-	--devui-brand: #6fb969;
-	--devui-info: #8fb1d5;
-	--devui-success: #6fb969;
-	--devui-warning: #d8937d;
-	--devui-danger: #d97676;
+	/* DevUI 主题色（由主题预设注入，此处为兜底） */
+	--devui-brand: var(--accent);
+	--devui-brand-hover: var(--accent-strong);
+	--devui-brand-active: var(--accent-strong);
+	--devui-primary: var(--accent);
+	--devui-info: var(--accent-strong);
+	--devui-success: var(--success);
+	--devui-warning: var(--warning);
+	--devui-danger: var(--danger);
 
 	/* DevUI 文本色 */
 	--devui-text: var(--text-primary);
@@ -17,13 +20,13 @@
 	--devui-placeholder: var(--text-placeholder);
 
 	/* DevUI 背景色 */
-	--devui-base-bg: var(--bg);
-	--devui-global-bg: var(--bg);
+	--devui-base-bg: var(--theme-devui-base-bg, var(--bg));
+	--devui-global-bg: var(--theme-devui-global-bg, var(--bg));
 	--devui-global-bg-normal: var(--surface);
 
 	/* DevUI 边框色 */
 	--devui-dividing-line: var(--border);
-	--devui-placeholder-bg: rgba(111, 185, 105, 0.06);
+	--devui-placeholder-bg: var(--accent-soft);
 
 	/* DevUI 阴影 */
 	--devui-shadow-length-base: 0 2px 8px;
@@ -34,44 +37,53 @@
 }
 
 :root.light {
-	--devui-brand: #6fb969;
-	--devui-info: #8fb1d5;
-	--devui-success: #6fb969;
-	--devui-warning: #d8937d;
-	--devui-danger: #d97676;
+	--devui-brand: var(--accent);
+	--devui-info: var(--accent-strong);
+	--devui-success: var(--success);
+	--devui-warning: var(--warning);
+	--devui-danger: var(--danger);
+	--devui-base-bg: var(--bg);
+	--devui-global-bg: var(--bg);
+}
+
+/* Card 卡片定制：背景与页面背景区分 */
+.devui-card {
+	background: var(--devui-base-bg, var(--surface-strong));
+	border: 1px solid var(--border);
+	box-shadow: 0 4px 14px var(--shadow);
 }
 
 /* Button 按钮定制 */
-:deep(.devui-btn) {
+.devui-btn {
 	border-radius: 8px;
 	font-weight: 600;
 	transition: all 0.2s ease;
 }
 
-:deep(.devui-btn-primary) {
-	background: linear-gradient(135deg, #6fb969 0%, #5eccc4 100%);
+.devui-btn-primary {
+	background: var(--devui-brand);
 	border: none;
 	color: #fff;
 }
 
-:deep(.devui-btn-primary:hover:not(:disabled)) {
-	box-shadow: 0 4px 12px rgba(111, 185, 105, 0.3);
-	transform: translateY(-1px);
+.devui-btn-primary:hover:not(:disabled) {
+	background: var(--devui-brand-hover);
+	box-shadow: 0 4px 12px var(--accent-soft);
 }
 
-:deep(.devui-btn-common) {
+.devui-btn-common {
 	border: 1px solid var(--border);
 	background: transparent;
 	color: var(--text-primary);
 }
 
-:deep(.devui-btn-common:hover:not(:disabled)) {
+.devui-btn-common:hover:not(:disabled) {
 	background: var(--surface-hover);
 	border-color: var(--border-strong);
 }
 
 /* Input 输入框定制 */
-:deep(.devui-input) {
+.devui-input {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 	background: var(--surface);
@@ -79,160 +91,192 @@
 	transition: all 0.2s ease;
 }
 
-:deep(.devui-input:focus) {
-	border-color: #6fb969;
-	box-shadow: 0 0 0 3px rgba(111, 185, 105, 0.12);
+.devui-input:focus {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* Checkbox 复选框定制 */
-:deep(.devui-checkbox) {
-	--devui-checkbox-checked-bg: #6fb969;
-	--devui-checkbox-focus-shadow: 0 0 0 2px rgba(111, 185, 105, 0.15);
+.devui-checkbox {
+	--devui-checkbox-checked-bg: var(--accent);
+	--devui-checkbox-focus-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 /* Radio 单选框定制 */
-:deep(.devui-radio) {
-	--devui-radio-checked-bg: #6fb969;
-	--devui-radio-focus-shadow: 0 0 0 2px rgba(111, 185, 105, 0.15);
+.devui-radio {
+	--devui-radio-checked-bg: var(--accent);
+	--devui-radio-focus-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-/* Switch 开关定制 */
-:deep(.devui-switch) {
-	--devui-switch-active-bg: #6fb969;
-}
-
-/* Select 下拉框定制 */
-:deep(.devui-select) {
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: var(--surface);
-}
-
-:deep(.devui-select-option) {
+.devui-radio-label {
 	color: var(--text-primary);
 }
 
-:deep(.devui-select-option:hover) {
+.devui-radio-input:checked + .devui-radio-label::before {
+	background-color: var(--accent);
+	border-color: var(--accent);
+}
+
+/* Switch 开关定制 */
+.devui-switch {
+	--devui-switch-active-bg: var(--accent);
+}
+
+/* Select 下拉框定制（vue-devui 实际类名为 BEM 风格） */
+.devui-select__selection {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+	color: var(--text-primary);
+	transition: border-color 0.2s ease;
+}
+
+.devui-select__selection:hover {
+	border-color: var(--border-strong);
+}
+
+/* 下拉面板（teleport 到 body，必须用全局样式定制） */
+.devui-select__dropdown {
+	background: var(--surface-strong);
+	border: 1px solid var(--border-strong);
+	border-radius: 8px;
+	box-shadow: 0 6px 18px var(--shadow);
+}
+
+.devui-select__item {
+	color: var(--text-primary);
+}
+
+.devui-select__item:hover {
 	background: var(--surface-hover);
 }
 
+.devui-select__item.active {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.devui-select__item.disabled {
+	color: var(--text-placeholder);
+}
+
 /* Pagination 分页定制 */
-:deep(.devui-pagination .active) {
-	background: #6fb969;
+.devui-pagination .active {
+	background: var(--devui-brand);
 	color: #fff;
 }
 
 /* Tag 标签定制 */
-:deep(.devui-tag) {
+.devui-tag {
 	border-radius: 6px;
-	background: rgba(111, 185, 105, 0.12);
-	color: #6fb969;
+	background: var(--accent-soft);
+	color: var(--accent);
 	border: none;
 }
 
-:deep(.devui-tag-success) {
-	background: rgba(111, 185, 105, 0.12);
-	color: #6fb969;
+.devui-tag-success {
+	background: var(--success-soft);
+	color: var(--success);
 }
 
-:deep(.devui-tag-warning) {
-	background: rgba(216, 147, 125, 0.12);
-	color: #d8937d;
+.devui-tag-warning {
+	background: var(--warning-soft);
+	color: var(--warning);
 }
 
-:deep(.devui-tag-danger) {
-	background: rgba(217, 118, 118, 0.12);
-	color: #d97676;
+.devui-tag-danger {
+	background: var(--danger-soft);
+	color: var(--danger);
 }
 
 /* Modal 模态框定制 */
-:deep(.devui-modal) {
+.devui-modal {
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: 12px;
 	box-shadow: 0 18px 36px var(--shadow);
 }
 
-:deep(.devui-modal-header) {
+.devui-modal-header {
 	border-bottom: 1px solid var(--border);
 	color: var(--text-primary);
 }
 
 /* Tooltip 提示框定制 */
-:deep(.devui-tooltip) {
-	background: rgba(42, 36, 32, 0.92);
+.devui-tooltip {
+	background: var(--surface-strong);
 	color: var(--text-primary);
 	border-radius: 6px;
 	padding: 8px 12px;
 }
 
 /* Loading 加载定制 */
-:deep(.devui-loading) {
-	color: #6fb969;
+.devui-loading {
+	color: var(--accent);
 }
 
 /* Accordion 手风琴定制 */
-:deep(.devui-accordion-item) {
+.devui-accordion-item {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 }
 
-:deep(.devui-accordion-item.active .devui-accordion-header) {
-	color: #6fb969;
+.devui-accordion-item.active .devui-accordion-header {
+	color: var(--accent);
 }
 
 /* Tabs 标签页定制 */
-:deep(.devui-tabs-nav-item.active) {
-	color: #6fb969;
-	border-bottom-color: #6fb969;
+.devui-tabs-nav-item.active {
+	color: var(--accent);
+	border-bottom-color: var(--accent);
 }
 
-:deep(.devui-tabs-nav-item:hover) {
+.devui-tabs-nav-item:hover {
 	color: var(--text-primary);
 }
 
 /* Alert 提示定制 */
-:deep(.devui-alert-success) {
-	background: rgba(111, 185, 105, 0.12);
-	color: #6fb969;
-	border-left: 4px solid #6fb969;
+.devui-alert-success {
+	background: var(--success-soft);
+	color: var(--success);
+	border-left: 4px solid var(--success);
 }
 
-:deep(.devui-alert-warning) {
-	background: rgba(216, 147, 125, 0.12);
-	color: #d8937d;
-	border-left: 4px solid #d8937d;
+.devui-alert-warning {
+	background: var(--warning-soft);
+	color: var(--warning);
+	border-left: 4px solid var(--warning);
 }
 
-:deep(.devui-alert-danger) {
-	background: rgba(217, 118, 118, 0.12);
-	color: #d97676;
-	border-left: 4px solid #d97676;
+.devui-alert-danger {
+	background: var(--danger-soft);
+	color: var(--danger);
+	border-left: 4px solid var(--danger);
 }
 
-:deep(.devui-alert-info) {
+.devui-alert-info {
 	background: rgba(143, 177, 213, 0.12);
 	color: #8fb1d5;
 	border-left: 4px solid #8fb1d5;
 }
 
 /* Table 表格定制 */
-:deep(.devui-table) {
+.devui-table {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 	overflow: hidden;
 }
 
-:deep(.devui-table thead th) {
+.devui-table thead th {
 	background: rgba(42, 36, 32, 0.5);
 	color: var(--text-muted);
 	font-weight: 700;
 }
 
-:deep(.devui-table tbody tr:hover) {
+.devui-table tbody tr:hover {
 	background: rgba(111, 185, 105, 0.04);
 }
 
-:deep(.devui-table tbody tr) {
+.devui-table tbody tr {
 	border-bottom: 1px solid var(--border);
 }

@@ -14,12 +14,14 @@ export function useSettings(visible) {
 	const roomFixed = ref(false)
 	const groupId = ref('')
 	const theme = ref('default')
+	const windowSize = ref('default')
 	const enableQqNotification = ref(false)
 	const features = ref(createDefaultFeatures())
 	const filterWords = ref([])
 	const liveTimedDanmuList = ref([])
 
 	const themeOptions = computed(() => frontendConfig.value?.themeOptions || [])
+	const windowSizeOptions = computed(() => frontendConfig.value?.windowSizeOptions || [])
 
 	const liveStartEnabled = computed({
 		get: () => features.value.enable_live_start,
@@ -67,6 +69,7 @@ export function useSettings(visible) {
 		roomFixed.value = Boolean(config.roomFixed)
 		groupId.value = roomBinding.GROUPID || ''
 		theme.value = config.frontend?.theme || configPayload.theme?.name || 'default'
+		windowSize.value = config.frontend?.window_size || 'default'
 		enableQqNotification.value = Boolean(
 			roomBinding.enable_qq_notification ?? configFeatures.enable_qq_notification,
 		)
@@ -94,7 +97,7 @@ export function useSettings(visible) {
 		return {
 			room_ids: [String(roomId.value || '').trim()].filter(Boolean),
 			GROUPID: qqNotificationEnabled ? String(groupId.value || '').trim() : '',
-			frontend: { theme: theme.value },
+			frontend: { theme: theme.value, window_size: windowSize.value },
 			enable_qq_notification: qqNotificationEnabled,
 			live_timed_danmu_list: liveTimedDanmuList.value
 				.filter((item) => item.text.trim())
@@ -160,9 +163,11 @@ export function useSettings(visible) {
 		roomFixed,
 		groupId,
 		theme,
+		windowSize,
 		features,
 		enableQqNotification,
 		themeOptions,
+		windowSizeOptions,
 		liveStartEnabled,
 		liveStartOptionsDisabled,
 		groupIdDisabled,
