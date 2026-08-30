@@ -86,6 +86,22 @@ def init_db(room_id):
         cursor.execute("ALTER TABLE danmu ADD COLUMN uid INTEGER")
     except sqlite3.OperationalError:
         pass  # 列已存在
+
+    # 礼物表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gift (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            uid INTEGER,
+            gift_name TEXT,
+            gift_num INTEGER,
+            total_coin INTEGER,
+            paid_coin INTEGER,
+            send_time TEXT,
+            medal_name TEXT,
+            medal_level INTEGER
+        )
+        """)
     conn.commit()
     conn.close()
 
@@ -161,6 +177,138 @@ def get_all_danmu(room_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM danmu ORDER BY send_time ASC")
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def count_danmu(room_id, keyword=None, item_type=None):
+    """统计条数（可选按关键词/类型过滤）"""
+    init_db(room_id)
+    conn = sqlite3.connect(get_room_db_file(room_id))
+    cursor = conn.cursor()
+    where, params = _build_where(keyword, item_type)
+    sql = f"SELECT COUNT(*) FROM danmu{where}"
+    cursor.execute(sql, params)
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def _build_where(keyword=None, item_type=None):
+    """构造 WHERE 子句"""
+    clauses = []
+    params = []
+    if keyword:
+        clauses.append("(content LIKE ? OR username LIKE ?)")
+        like = f"%{keyword}%"
+        params.extend([like, like])
+    if item_type:
+        clauses.append("type = ?")
+        params.append(item_type)
+    if not clauses:
+        return "", []
+    return " WHERE " + " AND ".join(clauses), params
+
+
+def get_danmu_page(
+    room_id, limit=50, offset=0, keyword=None, item_type=None, order="DESC"
+):
+    """分页查询弹幕（供前端「弹幕数据库」页面）"""
+    init_db(room_id)
+    conn = sqlite3.connect(get_room_db_file(room_id))
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    where, params = _build_where(keyword, item_type)
+    order_sql = "DESC" if order != "ASC" else "ASC"
+    sql = (
+        f"SELECT * FROM danmu{where} "
+        f"ORDER BY send_time {order_sql}, id {order_sql} "
+        f"LIMIT ? OFFSET ?"
+    )
+    cursor.execute(sql, [*params, int(limit), int(offset)])
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_recent_danmu(room_id, limit=50):
+    """最近 N 条弹幕"""
+    return get_danmu_page(room_id, limit=limit, offset=0, order="DESC")
+
+
+# ==================== 礼物数据库 ====================
+
+
+def save_gift(gift_dict: dict, room_id):
+    """保存礼物记录到 gift 表"""
+    if not isinstance(gift_dict, dict):
+        return
+    init_db(room_id)
+    now = datetime.datetime.now().isoformat()
+    conn = sqlite3.connect(get_room_db_file(room_id))
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO gift
+            (username, uid, gift_name, gift_num, total_coin, paid_coin,
+             send_time, medal_name, medal_level)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            gift_dict.get("username", ""),
+            gift_dict.get("uid"),
+            gift_dict.get("gift_name", "未知礼物"),
+            int(gift_dict.get("gift_num", 1) or 1),
+            int(gift_dict.get("total_coin", 0) or 0),
+            int(gift_dict.get("paid_coin", 0) or 0),
+            now,
+            gift_dict.get("medal_name", ""),
+            int(gift_dict.get("medal_level", 0) or 0),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def count_gifts(room_id, keyword=None):
+    """统计礼物条数（可选关键词过滤）"""
+    init_db(room_id)
+    conn = sqlite3.connect(get_room_db_file(room_id))
+    cursor = conn.cursor()
+    if keyword:
+        like = f"%{keyword}%"
+        cursor.execute(
+            "SELECT COUNT(*) FROM gift WHERE gift_name LIKE ? OR username LIKE ?",
+            (like, like),
+        )
+    else:
+        cursor.execute("SELECT COUNT(*) FROM gift")
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def get_gift_page(room_id, limit=50, offset=0, keyword=None, order="DESC"):
+    """分页查询礼物（供前端「礼物数据库」页面）"""
+    init_db(room_id)
+    conn = sqlite3.connect(get_room_db_file(room_id))
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    order_sql = "DESC" if order != "ASC" else "ASC"
+    if keyword:
+        like = f"%{keyword}%"
+        cursor.execute(
+            f"SELECT * FROM gift WHERE gift_name LIKE ? OR username LIKE ? "
+            f"ORDER BY send_time {order_sql}, id {order_sql} LIMIT ? OFFSET ?",
+            (like, like, int(limit), int(offset)),
+        )
+    else:
+        cursor.execute(
+            f"SELECT * FROM gift ORDER BY send_time {order_sql}, id {order_sql} "
+            f"LIMIT ? OFFSET ?",
+            (int(limit), int(offset)),
+        )
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows

@@ -5,8 +5,8 @@
   ],
   "room_bindings": {
     "1879006019": {
-      "GROUPID": "1093523827",
-      "enable_qq_notification": true,
+      "GROUPID": "",
+      "enable_qq_notification": false,
       "live_timed_danmu_list": [
         {
           "delay": 30,
@@ -27,7 +27,7 @@
     }
   },
   "frontend": {
-    "theme": "sakura"
+    "theme": "ocean"
   },
   "features": {
     "enable_danmaku": true,

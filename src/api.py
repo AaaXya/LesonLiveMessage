@@ -10,9 +10,10 @@ from .frontend_config import FrontendConfigApi
 class CloseApi(FrontendConfigApi):
     """前后端 API 桥接 — webview js_api / HTTP 端点共用"""
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, room_manager=None):
         super().__init__(room_id=ctx.fixed_room_id)
         self._ctx = ctx  # 下划线前缀：pywebview 不暴露给 JS，避免循环引用
+        self._room_manager = room_manager
 
     # ==================== 配置 ====================
 
@@ -81,4 +82,125 @@ class CloseApi(FrontendConfigApi):
             return {"ok": True, "result": result}
         except Exception as e:
             print("发送弹幕失败：", e)
+            return {"ok": False, "error": str(e)}
+
+    # ==================== 数据面板 ====================
+
+    def getRoomsStatus(self):
+        """返回所有绑定直播间的运行状态"""
+        from .room_registry import get_all_rooms
+        from .avatar_proxy import fetch_room_cover
+
+        config = self._ctx.config
+        bindings = config.get("room_bindings", {})
+        room_ids = [str(r) for r in config.get("room_ids", [])]
+        if not room_ids:
+            room_ids = list(bindings.keys())
+        listening_ids = self._room_manager.listening() if self._room_manager else set()
+        current = get_all_rooms()
+        by_id = {r["room_id"]: r for r in current}
+        rooms = []
+        for rid in room_ids:
+            binding = bindings.get(str(rid), {})
+            status = by_id.get(str(rid), {})
+            # 封面：优先本地 JSON 缓存，未命中则下载并持久化
+            cover_data = fetch_room_cover(rid, status.get("cover", ""))
+            rooms.append(
+                {
+                    "room_id": str(rid),
+                    "title": status.get("title", "") or f"房间 {rid}",
+                    "cover": cover_data,
+                    "connected": bool(status.get("connected", False)),
+                    "live_state": int(status.get("live_state", 0)),
+                    "is_live": bool(status.get("live_state", 0) > 0),
+                    "danmu_count": int(status.get("danmu_count", 0)),
+                    "last_event_at": status.get("last_event_at"),
+                    "last_event_type": status.get("last_event_type"),
+                    "group_id": binding.get("GROUPID", ""),
+                    "qq_notification": bool(
+                        binding.get("enable_qq_notification", False)
+                    ),
+                    "timed_danmu_count": len(
+                        binding.get("live_timed_danmu_list", []) or []
+                    ),
+                    "listening": str(rid) in listening_ids,
+                    "last_error": status.get("last_error"),
+                }
+            )
+        return {"ok": True, "rooms": rooms}
+
+    def startRoomListen(self, roomId):
+        """按需开始监听房间弹幕"""
+        if not self._room_manager:
+            return {"ok": False, "error": "监听管理器未初始化"}
+        return self._room_manager.start(roomId)
+
+    def stopRoomListen(self, roomId):
+        """停止监听房间弹幕"""
+        if not self._room_manager:
+            return {"ok": False, "error": "监听管理器未初始化"}
+        return self._room_manager.stop(roomId)
+
+    def getConsoleLogs(self, sinceSeq=0, limit=200):
+        """返回后端控制台日志（自 sinceSeq 之后）"""
+        from .console_log import get_logs, clear as clear_logs
+
+        try:
+            if sinceSeq == -1:
+                clear_logs()
+                return {"ok": True, "logs": [], "nextSeq": 0}
+            logs = get_logs(int(sinceSeq) if sinceSeq else 0, int(limit))
+            next_seq = logs[-1]["seq"] if logs else int(sinceSeq)
+            return {"ok": True, "logs": logs, "nextSeq": next_seq}
+        except Exception as e:
+            print("获取控制台日志失败：", e)
+            return {"ok": False, "error": str(e), "logs": [], "nextSeq": 0}
+
+    def getDanmuPage(
+        self,
+        roomId=None,
+        page=1,
+        pageSize=50,
+        keyword=None,
+        itemType=None,
+        order="DESC",
+    ):
+        """弹幕数据库分页查询"""
+        from .danmu_db import get_danmu_page, count_danmu
+
+        room_id = str(roomId or self._ctx.lesson_room_id).strip()
+        if not room_id.isdigit():
+            return {"ok": False, "error": "无效的房间 ID"}
+        try:
+            limit = max(1, min(int(pageSize), 200))
+            offset = max(0, (int(page) - 1)) * limit
+            rows = get_danmu_page(room_id, limit, offset, keyword, itemType, order)
+            total = count_danmu(room_id, keyword, itemType)
+            return {"ok": True, "rows": rows, "total": total, "page": int(page)}
+        except Exception as e:
+            print("查询弹幕数据库失败：", e)
+            return {"ok": False, "error": str(e)}
+
+    def getGiftPage(
+        self,
+        roomId=None,
+        page=1,
+        pageSize=50,
+        keyword=None,
+        order="DESC",
+    ):
+        """礼物数据库分页查询"""
+        from .danmu_db import get_gift_page, count_gifts
+
+        room_id = str(roomId or self._ctx.lesson_room_id).strip()
+        if not room_id.isdigit():
+            return {"ok": False, "error": "无效的房间 ID"}
+        try:
+            limit = max(1, min(int(pageSize), 200))
+            offset = max(0, (int(page) - 1)) * limit
+            rows = get_gift_page(room_id, limit, offset, keyword, order)
+            total = count_gifts(room_id, keyword)
+            return {"ok": True, "rows": rows, "total": total, "page": int(page)}
+        except Exception as e:
+            print("查询礼物数据库失败：", e)
             return {"ok": False, "error": str(e)}

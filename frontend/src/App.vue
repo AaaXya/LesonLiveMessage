@@ -1,41 +1,22 @@
 <script setup>
-import { ref } from 'vue'
-import WindowControls from './components/WindowControls.vue'
-import SettingsPanel from './components/SettingsPanel.vue'
+import AppLayout from './layout/AppLayout.vue'
 import DanmuList from './components/DanmuList.vue'
-import DanmuInput from './components/DanmuInput.vue'
 
-const settingsVisible = ref(false)
-
-// URL 传参 ?mode=web 时仅展示弹幕流（OBS 浏览器源场景）
-const isWebMode = new URLSearchParams(location.search).get('mode') === 'web'
-
-function openSettings() {
-	settingsVisible.value = true
-}
-
-function closeSettings() {
-	settingsVisible.value = false
-}
+// OBS 浏览器源等纯弹幕悬浮场景：?overlay=1
+const isOverlay = new URLSearchParams(location.search).get('overlay') === '1'
 </script>
 
 <template>
-	<div class="app-root">
-		<template v-if="!isWebMode">
-			<WindowControls :on-open-settings="openSettings" />
-			<SettingsPanel :visible="settingsVisible" @close="closeSettings" />
-		</template>
-		<DanmuList />
-		<DanmuInput v-if="!isWebMode" />
-	</div>
+	<AppLayout v-if="!isOverlay" />
+	<DanmuList v-else />
 </template>
 
-<style scoped>
-.app-root {
-	display: flex;
-	flex-direction: column;
-	height: 100vh;
-	width: 100%;
+<style>
+html,
+body,
+#app {
+	height: 100%;
+	margin: 0;
 	background: transparent;
 }
 </style>

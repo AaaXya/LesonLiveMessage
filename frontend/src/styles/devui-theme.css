@@ -1,0 +1,238 @@
+/* DevUI 主题定制 - 应用新的配色方案 */
+
+/* 覆盖DevUI的全局变量 */
+:root {
+	/* DevUI 主题色 */
+	--devui-brand: #6fb969;
+	--devui-info: #8fb1d5;
+	--devui-success: #6fb969;
+	--devui-warning: #d8937d;
+	--devui-danger: #d97676;
+
+	/* DevUI 文本色 */
+	--devui-text: var(--text-primary);
+	--devui-text-strong: var(--text-primary);
+	--devui-text-weak: var(--text-muted);
+	--devui-text-disabled: var(--text-placeholder);
+	--devui-placeholder: var(--text-placeholder);
+
+	/* DevUI 背景色 */
+	--devui-base-bg: var(--bg);
+	--devui-global-bg: var(--bg);
+	--devui-global-bg-normal: var(--surface);
+
+	/* DevUI 边框色 */
+	--devui-dividing-line: var(--border);
+	--devui-placeholder-bg: rgba(111, 185, 105, 0.06);
+
+	/* DevUI 阴影 */
+	--devui-shadow-length-base: 0 2px 8px;
+	--devui-shadow-color: var(--shadow);
+
+	/* DevUI 圆角 */
+	--devui-border-radius: 8px;
+}
+
+:root.light {
+	--devui-brand: #6fb969;
+	--devui-info: #8fb1d5;
+	--devui-success: #6fb969;
+	--devui-warning: #d8937d;
+	--devui-danger: #d97676;
+}
+
+/* Button 按钮定制 */
+:deep(.devui-btn) {
+	border-radius: 8px;
+	font-weight: 600;
+	transition: all 0.2s ease;
+}
+
+:deep(.devui-btn-primary) {
+	background: linear-gradient(135deg, #6fb969 0%, #5eccc4 100%);
+	border: none;
+	color: #fff;
+}
+
+:deep(.devui-btn-primary:hover:not(:disabled)) {
+	box-shadow: 0 4px 12px rgba(111, 185, 105, 0.3);
+	transform: translateY(-1px);
+}
+
+:deep(.devui-btn-common) {
+	border: 1px solid var(--border);
+	background: transparent;
+	color: var(--text-primary);
+}
+
+:deep(.devui-btn-common:hover:not(:disabled)) {
+	background: var(--surface-hover);
+	border-color: var(--border-strong);
+}
+
+/* Input 输入框定制 */
+:deep(.devui-input) {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+	color: var(--text-primary);
+	transition: all 0.2s ease;
+}
+
+:deep(.devui-input:focus) {
+	border-color: #6fb969;
+	box-shadow: 0 0 0 3px rgba(111, 185, 105, 0.12);
+}
+
+/* Checkbox 复选框定制 */
+:deep(.devui-checkbox) {
+	--devui-checkbox-checked-bg: #6fb969;
+	--devui-checkbox-focus-shadow: 0 0 0 2px rgba(111, 185, 105, 0.15);
+}
+
+/* Radio 单选框定制 */
+:deep(.devui-radio) {
+	--devui-radio-checked-bg: #6fb969;
+	--devui-radio-focus-shadow: 0 0 0 2px rgba(111, 185, 105, 0.15);
+}
+
+/* Switch 开关定制 */
+:deep(.devui-switch) {
+	--devui-switch-active-bg: #6fb969;
+}
+
+/* Select 下拉框定制 */
+:deep(.devui-select) {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+}
+
+:deep(.devui-select-option) {
+	color: var(--text-primary);
+}
+
+:deep(.devui-select-option:hover) {
+	background: var(--surface-hover);
+}
+
+/* Pagination 分页定制 */
+:deep(.devui-pagination .active) {
+	background: #6fb969;
+	color: #fff;
+}
+
+/* Tag 标签定制 */
+:deep(.devui-tag) {
+	border-radius: 6px;
+	background: rgba(111, 185, 105, 0.12);
+	color: #6fb969;
+	border: none;
+}
+
+:deep(.devui-tag-success) {
+	background: rgba(111, 185, 105, 0.12);
+	color: #6fb969;
+}
+
+:deep(.devui-tag-warning) {
+	background: rgba(216, 147, 125, 0.12);
+	color: #d8937d;
+}
+
+:deep(.devui-tag-danger) {
+	background: rgba(217, 118, 118, 0.12);
+	color: #d97676;
+}
+
+/* Modal 模态框定制 */
+:deep(.devui-modal) {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	box-shadow: 0 18px 36px var(--shadow);
+}
+
+:deep(.devui-modal-header) {
+	border-bottom: 1px solid var(--border);
+	color: var(--text-primary);
+}
+
+/* Tooltip 提示框定制 */
+:deep(.devui-tooltip) {
+	background: rgba(42, 36, 32, 0.92);
+	color: var(--text-primary);
+	border-radius: 6px;
+	padding: 8px 12px;
+}
+
+/* Loading 加载定制 */
+:deep(.devui-loading) {
+	color: #6fb969;
+}
+
+/* Accordion 手风琴定制 */
+:deep(.devui-accordion-item) {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+}
+
+:deep(.devui-accordion-item.active .devui-accordion-header) {
+	color: #6fb969;
+}
+
+/* Tabs 标签页定制 */
+:deep(.devui-tabs-nav-item.active) {
+	color: #6fb969;
+	border-bottom-color: #6fb969;
+}
+
+:deep(.devui-tabs-nav-item:hover) {
+	color: var(--text-primary);
+}
+
+/* Alert 提示定制 */
+:deep(.devui-alert-success) {
+	background: rgba(111, 185, 105, 0.12);
+	color: #6fb969;
+	border-left: 4px solid #6fb969;
+}
+
+:deep(.devui-alert-warning) {
+	background: rgba(216, 147, 125, 0.12);
+	color: #d8937d;
+	border-left: 4px solid #d8937d;
+}
+
+:deep(.devui-alert-danger) {
+	background: rgba(217, 118, 118, 0.12);
+	color: #d97676;
+	border-left: 4px solid #d97676;
+}
+
+:deep(.devui-alert-info) {
+	background: rgba(143, 177, 213, 0.12);
+	color: #8fb1d5;
+	border-left: 4px solid #8fb1d5;
+}
+
+/* Table 表格定制 */
+:deep(.devui-table) {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+:deep(.devui-table thead th) {
+	background: rgba(42, 36, 32, 0.5);
+	color: var(--text-muted);
+	font-weight: 700;
+}
+
+:deep(.devui-table tbody tr:hover) {
+	background: rgba(111, 185, 105, 0.04);
+}
+
+:deep(.devui-table tbody tr) {
+	border-bottom: 1px solid var(--border);
+}

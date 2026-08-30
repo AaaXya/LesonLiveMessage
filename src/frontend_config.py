@@ -130,7 +130,17 @@ def normalize_config_update(current_config, update, room_id=None):
         if "room_ids" in update and isinstance(update["room_ids"], list):
             clean_ids = [int(x) for x in update["room_ids"] if str(x).strip().isdigit()]
             if clean_ids:
-                next_config["room_ids"] = clean_ids
+                # 合并而非替换：设置页只编辑主房间，保存时保留其他已绑定的房间
+                old_ids = [
+                    str(i)
+                    for i in next_config.get("room_ids", [])
+                    if str(i).strip().isdigit()
+                ]
+                merged = []
+                for x in [str(i) for i in clean_ids] + old_ids:
+                    if x not in merged:
+                        merged.append(x)
+                next_config["room_ids"] = [int(x) for x in merged]
         elif "LESSONROOMID" in update:
             # 兼容旧前端：单房间 ID
             room_id_str = str(update["LESSONROOMID"]).strip()

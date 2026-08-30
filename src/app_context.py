@@ -36,7 +36,12 @@ class AppContext:
         self.window = None
 
         # ---- 直播状态 ----
-        self.live_state = 0  # 开播次数计数，防止重复 QQ 通知
+        self.is_live = False  # 当前直播状态，由房间信息与 LIVE/PREPARING 事件同步
+        self.live_started_notified = False  # 本次监听周期内是否已发送开播通知
+        self.stop_flag = threading.Event()  # 停止监听标志（按需监听用）
+
+        # ---- 事件外接（按需监听时把事件转给主队列） ----
+        self._event_sink = None
 
         # ---- Web 模式事件队列 ----
         self._event_queue = []
@@ -71,8 +76,11 @@ class AppContext:
     # ==================== 前端推送 ====================
 
     def send_to_frontend(self, data):
-        """推送到前端：webview 走 JS，web 模式走事件队列"""
+        """推送到前端：优先外部 sink，其次 window JS，web 模式走事件队列"""
         if data is None:
+            return
+        if self._event_sink:
+            self._event_sink(data)
             return
         if self.window:
             self.window.evaluate_js(f"addDanmu({json.dumps(data, ensure_ascii=False)})")

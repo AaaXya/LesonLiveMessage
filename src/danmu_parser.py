@@ -104,6 +104,12 @@ def parse_gift(raw_data):
             or sender_info.get("uname")
             or user_base.get("name", "匿名用户")
         )
+        uid = (
+            sender_info.get("uid")
+            or gift_data.get("uid")
+            or user_base.get("uid")
+            or body.get("uid")
+        )
 
         actual_coin = gift_data.get("total_coin", 0)
         if actual_coin == 0:
@@ -128,6 +134,7 @@ def parse_gift(raw_data):
         return {
             "type": "gift",
             "username": username,
+            "uid": uid,
             "gift_name": gift_data.get(
                 "giftName", gift_data.get("gift_name", "未知礼物")
             ),

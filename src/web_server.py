@@ -78,6 +78,43 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             _json_response(self, {"events": events})
             return
 
+        if path == "/api/rooms":
+            result = self.api.getRoomsStatus()
+            _json_response(self, result)
+            return
+
+        if path == "/api/console":
+            qs = urllib.parse.parse_qs(parsed.query)
+            since = int(qs.get("since", [0])[0])
+            result = self.api.getConsoleLogs(sinceSeq=since)
+            _json_response(self, result)
+            return
+
+        if path == "/api/danmu_db":
+            qs = urllib.parse.parse_qs(parsed.query)
+            result = self.api.getDanmuPage(
+                roomId=qs.get("room", [None])[0],
+                page=int(qs.get("page", [1])[0]),
+                pageSize=int(qs.get("pageSize", [50])[0]),
+                keyword=qs.get("keyword", [None])[0],
+                itemType=qs.get("type", [None])[0],
+                order=qs.get("order", ["DESC"])[0],
+            )
+            _json_response(self, result)
+            return
+
+        if path == "/api/gift_db":
+            qs = urllib.parse.parse_qs(parsed.query)
+            result = self.api.getGiftPage(
+                roomId=qs.get("room", [None])[0],
+                page=int(qs.get("page", [1])[0]),
+                pageSize=int(qs.get("pageSize", [50])[0]),
+                keyword=qs.get("keyword", [None])[0],
+                order=qs.get("order", ["DESC"])[0],
+            )
+            _json_response(self, result)
+            return
+
         if path.startswith("/api/"):
             _json_response(self, {"ok": False, "error": "未知接口"}, status=404)
             return
@@ -117,6 +154,18 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             _json_response(self, result)
             return
 
+        if path == "/api/listen":
+            action = body.get("action")
+            room = body.get("room")
+            if action == "start":
+                result = self.api.startRoomListen(room)
+            elif action == "stop":
+                result = self.api.stopRoomListen(room)
+            else:
+                result = {"ok": False, "error": "未知操作"}
+            _json_response(self, result)
+            return
+
         _json_response(self, {"ok": False, "error": "未知接口"}, status=404)
 
     # ---- CORS ----
@@ -129,12 +178,12 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
 
-def start_web_server(ctx, port=8080):
+def start_web_server(ctx, port=8080, room_manager=None):
     """启动 web 模式 HTTP 服务器（阻塞）"""
 
     # 设置类属性，每个请求的 handler 实例自动继承
     APIHandler.ctx = ctx
-    APIHandler.api = CloseApi(ctx)
+    APIHandler.api = CloseApi(ctx, room_manager)
 
     server = http.server.HTTPServer(("127.0.0.1", port), APIHandler)
     url = f"http://127.0.0.1:{port}?mode=web"
