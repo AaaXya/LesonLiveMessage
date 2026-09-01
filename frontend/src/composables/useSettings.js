@@ -12,29 +12,14 @@ export function useSettings(visible) {
 	const status = ref('')
 	const roomId = ref('')
 	const roomFixed = ref(false)
-	const groupId = ref('')
 	const theme = ref('default')
 	const windowSize = ref('default')
-	const enableQqNotification = ref(false)
 	const features = ref(createDefaultFeatures())
 	const filterWords = ref([])
 	const liveTimedDanmuList = ref([])
 
 	const themeOptions = computed(() => frontendConfig.value?.themeOptions || [])
 	const windowSizeOptions = computed(() => frontendConfig.value?.windowSizeOptions || [])
-
-	const liveStartEnabled = computed({
-		get: () => features.value.enable_live_start,
-		set: (value) => {
-			features.value.enable_live_start = value
-			if (!value) {
-				enableQqNotification.value = false
-			}
-		},
-	})
-
-	const liveStartOptionsDisabled = computed(() => !liveStartEnabled.value)
-	const groupIdDisabled = computed(() => !liveStartEnabled.value || !enableQqNotification.value)
 
 	watch(visible, async (isVisible) => {
 		if (!isVisible) {
@@ -45,12 +30,6 @@ export function useSettings(visible) {
 			await loadFrontendConfig()
 		}
 		hydrateFromConfig(frontendConfig.value || {})
-	})
-
-	watch(liveStartEnabled, (enabled) => {
-		if (!enabled) {
-			enableQqNotification.value = false
-		}
 	})
 
 	function createDefaultFeatures() {
@@ -67,12 +46,8 @@ export function useSettings(visible) {
 
 		roomId.value = config.LESSONROOMID ? String(config.LESSONROOMID) : ''
 		roomFixed.value = Boolean(config.roomFixed)
-		groupId.value = roomBinding.GROUPID || ''
 		theme.value = config.frontend?.theme || configPayload.theme?.name || 'default'
 		windowSize.value = config.frontend?.window_size || 'default'
-		enableQqNotification.value = Boolean(
-			roomBinding.enable_qq_notification ?? configFeatures.enable_qq_notification,
-		)
 
 		FEATURE_KEYS.forEach((key) => {
 			features.value[key] = Boolean(configFeatures[key])
@@ -91,14 +66,19 @@ export function useSettings(visible) {
 		filterWords.value = Array.isArray(config.filter_words) ? [...config.filter_words] : []
 	}
 
-	function collectUpdate() {
-		const qqNotificationEnabled = liveStartEnabled.value && enableQqNotification.value
+	// 直播间 ID：必须是纯数字，转为 number 再写配置
+	function parseRoomId() {
+		const text = String(roomId.value || '').trim()
+		return /^\d+$/.test(text) ? Number(text) : null
+	}
 
+	function collectUpdate() {
+		// 开播通知开启时，同时启用本机桌面通知
+		const roomIdNum = parseRoomId()
 		return {
-			room_ids: [String(roomId.value || '').trim()].filter(Boolean),
-			GROUPID: qqNotificationEnabled ? String(groupId.value || '').trim() : '',
+			room_ids: roomIdNum !== null ? [roomIdNum] : [],
 			frontend: { theme: theme.value, window_size: windowSize.value },
-			enable_qq_notification: qqNotificationEnabled,
+			enable_local_notification: Boolean(features.value.enable_live_start),
 			live_timed_danmu_list: liveTimedDanmuList.value
 				.filter((item) => item.text.trim())
 				.map((item) => ({
@@ -116,13 +96,8 @@ export function useSettings(visible) {
 			status.value = '请先填写直播间 ID'
 			return false
 		}
-
-		if (
-			liveStartEnabled.value &&
-			enableQqNotification.value &&
-			!String(groupId.value || '').trim()
-		) {
-			status.value = '开启 QQ 推送时请填写群号'
+		if (parseRoomId() === null) {
+			status.value = '直播间 ID 必须为纯数字'
 			return false
 		}
 
@@ -161,16 +136,11 @@ export function useSettings(visible) {
 		status,
 		roomId,
 		roomFixed,
-		groupId,
 		theme,
 		windowSize,
 		features,
-		enableQqNotification,
 		themeOptions,
 		windowSizeOptions,
-		liveStartEnabled,
-		liveStartOptionsDisabled,
-		groupIdDisabled,
 		filterWords,
 		liveTimedDanmuList,
 		save,

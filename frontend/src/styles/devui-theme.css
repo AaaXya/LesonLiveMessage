@@ -32,8 +32,25 @@
 	--devui-shadow-length-base: 0 2px 8px;
 	--devui-shadow-color: var(--shadow);
 
-	/* DevUI 圆角 */
-	--devui-border-radius: 8px;
+	/* DevUI 表单控件与下拉面板：深色模式下保证文字/背景可读 */
+	--devui-form-control-bg: var(--surface);
+	--devui-form-control-line: var(--border);
+	--devui-form-control-line-hover: var(--border-strong);
+	--devui-form-control-line-active: var(--accent);
+	--devui-connected-overlay-bg: var(--surface-strong);
+	--devui-list-item-hover-bg: var(--surface-hover);
+	--devui-list-item-active-bg: var(--accent-soft);
+	--devui-list-item-hover-text: var(--text-primary);
+	--devui-list-item-active-text: var(--accent);
+	--devui-icon-text: var(--text-muted);
+
+	/* 圆角：保持 DevUI 默认（--devui-border-radius: 2px），
+	   需要大圆角的组件单独设置，避免全局值把复选框/单选等小控件变圆 */
+}
+
+/* 可编辑下拉：输入文字跟随主题 */
+.devui-editable-select-input {
+	color: var(--text-primary);
 }
 
 :root.light {
@@ -50,34 +67,38 @@
 .devui-card {
 	background: var(--devui-base-bg, var(--surface-strong));
 	border: 1px solid var(--border);
+	border-radius: 8px;
 	box-shadow: 0 4px 14px var(--shadow);
 }
 
-/* Button 按钮定制 */
-.devui-btn {
+/* Button 按钮定制（真实类名 .devui-button） */
+.devui-button {
 	border-radius: 8px;
 	font-weight: 600;
 	transition: all 0.2s ease;
 }
 
-.devui-btn-primary {
+.devui-button--solid--primary {
 	background: var(--devui-brand);
 	border: none;
 	color: #fff;
 }
 
-.devui-btn-primary:hover:not(:disabled) {
+.devui-button--solid--primary:hover:not(:disabled),
+.devui-button--solid--primary:focus {
 	background: var(--devui-brand-hover);
 	box-shadow: 0 4px 12px var(--accent-soft);
 }
 
-.devui-btn-common {
+.devui-button--solid--secondary,
+.devui-button--outline--secondary {
 	border: 1px solid var(--border);
 	background: transparent;
 	color: var(--text-primary);
 }
 
-.devui-btn-common:hover:not(:disabled) {
+.devui-button--solid--secondary:hover:not(:disabled),
+.devui-button--outline--secondary:hover:not(:disabled) {
 	background: var(--surface-hover);
 	border-color: var(--border-strong);
 }

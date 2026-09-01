@@ -175,7 +175,7 @@ onUnmounted(() => clearInterval(timer))
 							<p v-if="room.last_error" class="room-error">{{ room.last_error }}</p>
 							<div class="room-actions">
 								<span class="muted"
-									>QQ {{ room.qq_notification ? '已开启' : '未开启' }}</span
+									>本地通知 {{ room.local_notification ? '已开启' : '未开启' }}</span
 								><d-button
 									:color="room.listening ? 'secondary' : 'primary'"
 									:variant="room.listening ? 'outline' : 'solid'"

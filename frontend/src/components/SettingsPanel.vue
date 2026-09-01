@@ -16,14 +16,9 @@ const {
 	status,
 	roomId,
 	roomFixed,
-	groupId,
 	theme,
 	features,
-	enableQqNotification,
 	themeOptions,
-	liveStartEnabled,
-	liveStartOptionsDisabled,
-	groupIdDisabled,
 	filterWords,
 	liveTimedDanmuList,
 	save,
@@ -98,7 +93,7 @@ async function handleSave() {
 					{{
 						roomFixed
 							? '多开模式下此窗口固定监听该直播间。'
-							: '必填。QQ 群绑定等功能都关联到此房间 ID。'
+							: '必填。此房间的功能配置均关联到该 ID。'
 					}}
 				</div>
 			</div>
@@ -141,32 +136,9 @@ async function handleSave() {
 
 			<div class="settings-feature-block">
 				<label class="settings-check">
-					<input v-model="liveStartEnabled" type="checkbox" />
+					<input v-model="features.enable_live_start" type="checkbox" />
 					{{ FEATURE_LABELS.enable_live_start }}
 				</label>
-				<div class="settings-nested" :class="{ 'is-disabled': liveStartOptionsDisabled }">
-					<label class="settings-check">
-						<input
-							v-model="enableQqNotification"
-							type="checkbox"
-							:disabled="liveStartOptionsDisabled"
-						/>
-						推送到 QQ 群
-					</label>
-					<label class="settings-field settings-field-nested">
-						QQ 群号
-						<input
-							v-model="groupId"
-							type="text"
-							inputmode="numeric"
-							placeholder="例如 1093523827"
-							:disabled="groupIdDisabled"
-						/>
-						<div class="settings-field-hint">
-							仅对上方直播间 ID 生效，留空则不推送。
-						</div>
-					</label>
-				</div>
 			</div>
 
 			<label v-for="key in featuresAfterLiveStart" :key="key" class="settings-check">

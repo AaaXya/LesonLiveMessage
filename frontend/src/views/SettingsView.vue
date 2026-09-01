@@ -10,14 +10,11 @@ const {
 	status,
 	roomId,
 	roomFixed,
-	groupId,
 	theme,
 	windowSize,
 	features,
-	enableQqNotification,
 	themeOptions,
 	windowSizeOptions,
-	liveStartEnabled,
 	filterWords,
 	save,
 } = useSettings(visible)
@@ -32,6 +29,13 @@ const openModeSelectOptions = OPEN_MODE_OPTIONS.map((opt) => ({
 	name: opt.label,
 	value: opt.value,
 }))
+
+// 复选框类功能项（open_mode 是下拉选择，单独处理）
+const checkboxKeys = computed(() => FEATURE_KEYS.filter((k) => k !== 'open_mode'))
+
+function setFeature(key, checked) {
+	features.value[key] = checked
+}
 
 const roomOptions = computed(() => {
 	const ids = new Set()
@@ -72,20 +76,12 @@ onMounted(() => {
 		<div class="form">
 			<label>
 				直播间 ID
-				<div class="room-picker">
-					<select v-model="roomId" class="control" :disabled="roomFixed">
-						<option value="">请选择房间号</option>
-						<option v-for="item in roomOptions" :key="item.value" :value="item.value">
-							{{ item.label }}
-						</option>
-					</select>
-					<input
-						v-model="roomId"
-						class="control"
-						:disabled="roomFixed"
-						placeholder="手动输入直播间 ID"
-					/>
-				</div>
+				<d-editable-select
+					v-model="roomId"
+					:options="roomOptions"
+					:disabled="roomFixed"
+					placeholder="选择或输入直播间 ID"
+				/>
 			</label>
 			<div class="settings-grid">
 				<label>主题模式<d-select v-model="theme" :options="themeSelectOptions" /></label>
@@ -112,33 +108,15 @@ onMounted(() => {
 			</div>
 			<div class="section-label">功能开关</div>
 			<div class="checks">
-				<label
-					v-for="key in FEATURE_KEYS.filter(
-						(k) => !['open_mode', 'enable_live_start'].includes(k),
-					)"
+				<d-checkbox
+					v-for="key in checkboxKeys"
 					:key="key"
-					><input v-model="features[key]" type="checkbox" />
-					{{ FEATURE_LABELS[key] }}</label
+					:model-value="Boolean(features[key])"
+					@update:model-value="setFeature(key, $event)"
 				>
-				<label
-					><input v-model="liveStartEnabled" type="checkbox" />
-					{{ FEATURE_LABELS.enable_live_start }}</label
-				>
-				<label
-					><input
-						v-model="enableQqNotification"
-						type="checkbox"
-						:disabled="!liveStartEnabled"
-					/>
-					推送到 QQ 群</label
-				>
+					{{ FEATURE_LABELS[key] }}
+				</d-checkbox>
 			</div>
-			<label
-				>QQ 群号<input
-					v-model="groupId"
-					class="control"
-					:disabled="!liveStartEnabled || !enableQqNotification"
-			/></label>
 			<div class="section-label">弹幕过滤词</div>
 			<div class="filter">
 				<input
@@ -174,17 +152,16 @@ onMounted(() => {
 	color: var(--text-muted);
 	font-size: 13px;
 }
-.room-picker {
-	display: grid;
-	grid-template-columns: minmax(170px, 1fr) minmax(180px, 1.2fr);
-	gap: 8px;
-}
 .settings-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 14px;
 }
 .settings-grid label {
+	min-width: 0;
+}
+:deep(.devui-editable-select) {
+	width: 100%;
 	min-width: 0;
 }
 .window-size {
@@ -207,8 +184,7 @@ onMounted(() => {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
-.checks label {
-	display: block;
+.checks :deep(.devui-checkbox) {
 	color: var(--text-primary);
 }
 .filter {
