@@ -1,10 +1,10 @@
 import json
 import os
 
-from . import PROJECT_ROOT
+from . import DATA_ROOT, RESOURCE_ROOT
 
-CONFIG_PATH = os.path.join(PROJECT_ROOT, "config.json")
-THEME_PATH = os.path.join(PROJECT_ROOT, "theme.json")
+CONFIG_PATH = os.path.join(DATA_ROOT, "config.json")
+THEME_PATH = os.path.join(RESOURCE_ROOT, "theme.json")
 FEATURE_KEYS = (
     "enable_danmaku",
     "enable_guard_buy",
@@ -78,9 +78,8 @@ def apply_room_binding(config, room_id=None):
     next_config = dict(config)
     features = dict(next_config.get("features", {}))
     binding = get_room_binding(next_config, room_id)
-    group_id = str(binding.get("GROUPID", "")).strip()
-    features["enable_qq_notification"] = bool(
-        group_id and binding.get("enable_qq_notification", False)
+    features["enable_local_notification"] = bool(
+        binding.get("enable_local_notification", False)
     )
     # 定时弹幕
     features["live_timed_danmu_list"] = list(binding.get("live_timed_danmu_list", []))
@@ -202,13 +201,12 @@ def normalize_config_update(current_config, update, room_id=None):
     room_id = room_id or get_room_id(next_config)
     bindings = dict(next_config.get("room_bindings", {}))
     current_binding = dict(bindings.get(room_id, {}))
-    group_id = str(update.get("GROUPID", current_binding.get("GROUPID", ""))).strip()
-    current_binding["GROUPID"] = group_id
-    current_binding["enable_qq_notification"] = bool(
-        group_id
-        and update.get(
-            "enable_qq_notification",
-            current_binding.get("enable_qq_notification", False),
+    current_binding.pop("GROUPID", None)
+    current_binding.pop("enable_qq_notification", None)
+    current_binding["enable_local_notification"] = bool(
+        update.get(
+            "enable_local_notification",
+            current_binding.get("enable_local_notification", False),
         )
     )
     # 定时弹幕列表
@@ -226,7 +224,7 @@ def normalize_config_update(current_config, update, room_id=None):
             ]
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
-    next_config["features"].pop("enable_qq_notification", None)
+    next_config["features"].pop("enable_local_notification", None)
     # apply_room_binding 注入的运行时字段不写盘，避免与 room_bindings 重复
     next_config["features"].pop("live_timed_danmu_list", None)
 
@@ -276,6 +274,15 @@ class FrontendConfigApi:
                 current_config, update or {}, self.room_id
             )
             save_app_config(next_config)
+
+            # 保存配置时预建各房间数据库（新增房间立即创建 danmu/gift 表）
+            from .danmu_db import init_db
+
+            for rid in next_config.get("room_ids", []):
+                try:
+                    init_db(rid)
+                except Exception:
+                    pass
 
             # 用户滤词变更后刷新内存缓存
             from .danmu_db import reload_filter_words

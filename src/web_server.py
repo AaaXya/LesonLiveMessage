@@ -9,10 +9,10 @@ import http.server
 import urllib.parse
 import webbrowser
 
-from . import PROJECT_ROOT
+from . import RESOURCE_ROOT
 from .api import CloseApi
 
-STATIC_DIR = os.path.join(PROJECT_ROOT, "frontend", "dist")
+STATIC_DIR = os.path.join(RESOURCE_ROOT, "frontend", "dist")
 
 # ---- 抑制 HTTP 200 日志（仅异常时打印） ----
 _original_log_message = http.server.BaseHTTPRequestHandler.log_message

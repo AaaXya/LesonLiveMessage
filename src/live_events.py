@@ -12,9 +12,9 @@ from .danmu_parser import (
     parse_super_chat,
     parse_guard_buy,
 )
-from .napcat_send import send_qq_group
+from .local_notification import send_live_start_notification
 from .danmu_db import save_danmu, save_gift
-from .avatar_proxy import fetch_image_data_uri, fetch_image_data_uri_uncompressed
+from .avatar_proxy import fetch_image_data_uri
 from . import room_registry
 
 # ==================== 事件处理器 ====================
@@ -71,18 +71,8 @@ async def live_start_handler(event, ctx):
     if not ctx.features.get("enable_live_start"):
         return
 
-    if ctx.features.get("enable_qq_notification") and is_new_live:
-        cover_uri = (
-            fetch_image_data_uri_uncompressed(ctx.room_cover)
-            if ctx.room_cover
-            else None
-        )
-        send_qq_group(
-            f"直播开始了：\n{ctx.room_title}\n"
-            f"https://live.bilibili.com/{ctx.lesson_room_id}",
-            cover_uri,
-            ctx.lesson_room_id,
-        )
+    if ctx.features.get("enable_local_notification") and is_new_live:
+        send_live_start_notification(ctx.room_title, ctx.lesson_room_id)
 
     # 定时弹幕：直接读取该房间的 live_timed_danmu_list，开播后逐条延迟发送
     if is_new_live:
@@ -100,7 +90,7 @@ async def live_start_handler(event, ctx):
                 print(f"定时弹幕已安排：{delay} 秒后发送「{text}」")
                 asyncio.create_task(_send_timed_danmu(delay, text, ctx))
 
-    # 无论是否启用 QQ 通知，LIVE 事件都代表一次新的开播周期。
+    # 无论是否启用本地通知，LIVE 事件都代表一次新的开播周期。
     ctx.live_started_notified = True
 
 

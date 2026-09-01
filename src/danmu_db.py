@@ -4,11 +4,11 @@ import re
 import sqlite3
 import threading
 
-from . import PROJECT_ROOT
+from . import DATA_ROOT
 from .frontend_config import load_app_config
 
-DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-LEGACY_DB_FILE = os.path.join(PROJECT_ROOT, "danmu.db")
+DATA_DIR = os.path.join(DATA_ROOT, "data")
+LEGACY_DB_FILE = os.path.join(DATA_ROOT, "danmu.db")
 
 # 系统级过滤正则（不可由前端修改）
 _SYSTEM_FILTER_PATTERNS = [

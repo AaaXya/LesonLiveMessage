@@ -8,7 +8,7 @@ import os
 import threading
 from collections import deque
 
-from . import PROJECT_ROOT
+from . import DATA_ROOT
 from .frontend_config import apply_room_binding, get_room_ids, get_room_id
 
 
@@ -52,9 +52,21 @@ class AppContext:
     # ==================== 配置 ====================
 
     def _load_config(self):
-        config_path = os.path.join(PROJECT_ROOT, "config.json")
+        config_path = os.path.join(DATA_ROOT, "config.json")
         if not os.path.exists(config_path):
-            raise FileNotFoundError(f"配置文件不存在：{config_path}")
+            # 首次运行 / 打包后的全新目录：生成默认配置并落盘，避免 FileNotFoundError
+            from .frontend_config import FEATURE_KEYS, save_app_config
+
+            default_config = {
+                "room_ids": [],
+                "room_bindings": {},
+                "frontend": {"theme": "default", "window_size": "default"},
+                "features": {key: False for key in FEATURE_KEYS},
+                "filter_words": [],
+            }
+            save_app_config(default_config)
+            print(f"已生成默认配置文件：{config_path}")
+            return apply_room_binding(default_config, self.fixed_room_id)
         with open(config_path, "r", encoding="utf-8") as f:
             try:
                 return apply_room_binding(json.load(f), self.fixed_room_id)

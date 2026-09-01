@@ -134,9 +134,8 @@ class CloseApi(FrontendConfigApi):
                     "danmu_count": int(status.get("danmu_count", 0)),
                     "last_event_at": status.get("last_event_at"),
                     "last_event_type": status.get("last_event_type"),
-                    "group_id": binding.get("GROUPID", ""),
-                    "qq_notification": bool(
-                        binding.get("enable_qq_notification", False)
+                    "local_notification": bool(
+                        binding.get("enable_local_notification", False)
                     ),
                     "timed_danmu_count": len(
                         binding.get("live_timed_danmu_list", []) or []

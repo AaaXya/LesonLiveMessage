@@ -1,16 +1,16 @@
 # RunLiveTest — B站直播弹幕桌面客户端
 
-一个基于 Python + Vue 3 的 Bilibili 直播弹幕查看与互动桌面应用，支持透明悬浮窗、QQ 群推送、多主题切换。
+一个基于 Python + Vue 3 的 Bilibili 直播弹幕查看与互动桌面应用，支持透明悬浮窗、本机开播通知、多主题切换。
 
 ## ✨ 功能特性
 
 - **弹幕实时显示** — 监听 Bilibili 直播间弹幕、礼物、舰队（大航海）、SC（醒目留言），以透明悬浮窗形式展示
 - **弹幕发送** — 支持在桌面端直接发送弹幕到直播间
 - **SC 醒目留言置顶** — SC 消息固定在页面顶部，带倒计时进度条，不随弹幕滚动
-- **QQ 群推送** — 通过 [NapCat](https://github.com/NapNeko/NapCatQQ) 将直播事件（开播）实时转发到指定 QQ 群
+- **本机开播通知** — 通过 `plyer` 在直播开始时显示系统桌面通知
 - **开播定时弹幕** — 开播后按房间配置在指定时间自动发送弹幕（可多条、可单独开关）
 - **自动重连** — 直播间连接断开后指数退避自动重连，无需手动重启
-- **多房间绑定** — 每个直播间可独立绑定不同的 QQ 群，互不干扰
+- **多房间配置** — 每个直播间可独立配置开播通知与定时弹幕
 - **头像代理压缩** — 自动拉取用户头像并压缩，减少前端渲染压力
 - **主题系统** — 内置 10 套配色主题（5 套场景主题 + 5 套主题色预设），统一在「主题模式」中切换
 - **明暗模式** — 侧边栏一键切换深色 / 浅色，浅色模式使用独立浅色变量
@@ -25,7 +25,7 @@
 | 后端 | Python 3, `bilibili-api`, `pywebview`           |
 | 前端 | Vue 3, Vite, vue-devui（DevUI 组件 + 图标字体） |
 | 数据 | SQLite（弹幕存储）                              |
-| 推送 | NapCat HTTP API                                 |
+| 通知 | plyer 本机桌面通知                              |
 | 图像 | Pillow（头像压缩）                              |
 
 ## 📁 项目结构
@@ -43,7 +43,7 @@ runlivetest/
 │   ├── login.py            # B站登录管理（扫码/Cookie）
 │   ├── danmu_parser.py     # 弹幕/礼物/舰队/SC 数据解析
 │   ├── danmu_db.py         # SQLite 弹幕存储（按房间分库）
-│   ├── napcat_send.py      # QQ 群消息推送（NapCat）
+│   ├── local_notification.py # 本机桌面通知
 │   └── avatar_proxy.py     # 头像拉取与压缩
 ├── scripts/                # 工具脚本
 │   ├── migrate_danmu_db.py    # 弹幕数据库迁移工具
@@ -90,7 +90,6 @@ runlivetest/
 
 - Python 3.9+
 - Node.js 18+
-- [NapCat](https://github.com/NapNeko/NapCatQQ)（可选，QQ 推送需要）
 
 ### 1. 克隆项目
 
@@ -102,7 +101,7 @@ cd runlivetest
 ### 2. 安装 Python 依赖
 
 ```bash
-pip install bilibili-api pywebview requests Pillow
+pip install -r requirements.txt
 ```
 
 ### 3. 安装前端依赖并构建
@@ -126,16 +125,14 @@ cd ..
 	"room_ids": [1879006019, 另一个房间ID],
 	"room_bindings": {
 		"1879006019": {
-			"GROUPID": "你的QQ群号",
-			"enable_qq_notification": true,
+			"enable_local_notification": true,
 			"live_timed_danmu_list": [
 				{ "delay": 30, "text": "直播开始啦，欢迎各位观众~", "enabled": true },
 				{ "delay": 10800, "text": "已经开播三小时啦！", "enabled": true }
 			]
 		},
 		"另一个房间ID": {
-			"GROUPID": "另一个QQ群号",
-			"enable_qq_notification": true
+			"enable_local_notification": true
 		}
 	},
 	"frontend": {
@@ -157,7 +154,7 @@ cd ..
 | 字段                   | 说明                                                                                                            |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `room_ids`             | 监听的直播间 ID 数组，webview 模式下每个房间一个窗口                                                            |
-| `room_bindings`        | 房间 → QQ 群绑定，`GROUPID` 填写 QQ 群号                                                                        |
+| `room_bindings`        | 房间级设置，保存本机通知与定时弹幕配置                                                                          |
 | `frontend.theme`       | 主题名，可选 `default` / `ocean` / `sakura` / `forest` / `dark` / `green` / `blue` / `purple` / `pink` / `teal` |
 | `frontend.window_size` | 窗口大小预设：`small` / `default` / `large` / `wide`                                                            |
 | `features`             | 功能开关，控制各类消息的显示和推送                                                                              |
@@ -165,12 +162,12 @@ cd ..
 
 ### 单窗口多房间按需监听
 
-webview 模式为**单窗口**：在 `room_ids` 中配置多个房间后，在「直播间」页面点击房间卡片即可按需开始/停止监听，弹幕流按房间隔离显示。QQ 群、开播通知、定时弹幕等配置通过 `room_bindings` 按房间独立生效。
+webview 模式为**单窗口**：在 `room_ids` 中配置多个房间后，在「直播间」页面点击房间卡片即可按需开始/停止监听，弹幕流按房间隔离显示。开播通知和定时弹幕等配置通过 `room_bindings` 按房间独立生效。
 
-| 字段                     | 说明                                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------------------- |
-| `enable_qq_notification` | 开播后推送到该房间绑定的 QQ 群                                                           |
-| `live_timed_danmu_list`  | 开播定时弹幕列表，每条含 `delay`（秒）、`text`、`enabled`；`enabled: false` 的条目不发送 |
+| 字段                        | 说明                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `enable_local_notification` | 开播后显示本机桌面通知                                                                   |
+| `live_timed_danmu_list`     | 开播定时弹幕列表，每条含 `delay`（秒）、`text`、`enabled`；`enabled: false` 的条目不发送 |
 
 ### 开播定时弹幕
 
@@ -179,16 +176,7 @@ webview 模式为**单窗口**：在 `room_ids` 中配置多个房间后，在�
 - 每条弹幕独立倒计时：开播后 `delay` 秒发送 `text`；`text` 为空或 `enabled: false` 的条目跳过
 - 即使中途下播，已创建的定时任务到点仍会尝试发送（直播间关闭时发送会失败）
 
-### 5. 配置 NapCat（可选）
-
-如需 QQ 群推送，在 `src/napcat_send.py` 中修改：
-
-```python
-NAPCAT_URL = "http://127.0.0.1:3000/send_msg"
-NAPCAT_TOKEN = "你的Token"
-```
-
-### 6. 运行
+### 5. 运行
 
 ```bash
 python app.py

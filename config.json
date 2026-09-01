@@ -5,8 +5,7 @@
   ],
   "room_bindings": {
     "1879006019": {
-      "GROUPID": "",
-      "enable_qq_notification": false,
+      "enable_local_notification": true,
       "live_timed_danmu_list": [
         {
           "delay": 30,
@@ -21,13 +20,12 @@
       ]
     },
     "1933933419": {
-      "GROUPID": "",
-      "enable_qq_notification": false,
+      "enable_local_notification": false,
       "live_timed_danmu_list": []
     }
   },
   "frontend": {
-    "theme": "default",
+    "theme": "ocean",
     "window_size": "default"
   },
   "features": {

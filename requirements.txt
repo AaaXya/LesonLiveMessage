@@ -1,0 +1,6 @@
+aiohttp
+bilibili-api
+Pillow
+plyer
+pywebview
+requests

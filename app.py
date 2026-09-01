@@ -6,6 +6,7 @@ app.py — B站弹幕姬 入口
 import os
 import webview
 
+from src import DATA_ROOT, RESOURCE_ROOT
 from src.app_context import AppContext
 from src.login import get_credential
 from src.room_manager import RoomManager
@@ -20,7 +21,8 @@ def resolve_frontend_index(base_path):
 
 
 if __name__ == "__main__":
-    base_path = os.path.dirname(os.path.abspath(__file__))
+    # 前端资源目录（打包后为只读解压目录）
+    base_path = RESOURCE_ROOT
 
     # 控制台日志捕获：前端「控制台」页面展示后端输出
     install_console_capture()
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     ctx = AppContext()
 
     # ---- 获取登录凭据（所有房间共用） ----
-    cookies_file = os.path.join(base_path, "cookies.json")
+    cookies_file = os.path.join(DATA_ROOT, "cookies.json")
     credential = get_credential(cookies_file, ctx.lesson_room_id)
 
     # ---- 按需监听管理器：由前端点击房间开始/停止监听 ----

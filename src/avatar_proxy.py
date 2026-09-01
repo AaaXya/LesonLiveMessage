@@ -9,7 +9,7 @@ import time
 import requests
 from PIL import Image
 
-from . import PROJECT_ROOT
+from . import DATA_ROOT
 
 # B 站图片防盗链：统一请求头（带 Referer 否则 403）
 _HEADERS = {
@@ -28,7 +28,7 @@ MAX_COVER_DIMENSION = 640
 COVER_JPEG_QUALITY = 80
 
 # 持久化缓存：data/image_cache/image_cache.json
-CACHE_DIR = os.path.join(PROJECT_ROOT, "data", "image_cache")
+CACHE_DIR = os.path.join(DATA_ROOT, "data", "image_cache")
 CACHE_FILE = os.path.join(CACHE_DIR, "image_cache.json")
 
 _cache_lock = threading.Lock()
@@ -275,7 +275,7 @@ _load_cache()
 
 
 # 房间封面持久化：以 room_id 为键存 {url, data}，可直接手动编辑本地 JSON
-COVERS_FILE = os.path.join(PROJECT_ROOT, "data", "room_covers.json")
+COVERS_FILE = os.path.join(DATA_ROOT, "data", "room_covers.json")
 room_cover_store = {}
 
 
