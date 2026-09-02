@@ -127,8 +127,6 @@ def apply_room_binding(config, room_id=None):
     features["enable_local_notification"] = bool(
         binding.get("enable_local_notification", False)
     )
-    # 定时弹幕
-    features["live_timed_danmu_list"] = list(binding.get("live_timed_danmu_list", []))
     next_config["features"] = features
 
     # 自动发言按房间独立保存/读取，兼容全局旧配置兜底
@@ -260,19 +258,6 @@ def normalize_config_update(current_config, update, room_id=None):
             current_binding.get("enable_local_notification", False),
         )
     )
-    # 定时弹幕列表
-    if "live_timed_danmu_list" in update:
-        raw_list = update["live_timed_danmu_list"]
-        if isinstance(raw_list, list):
-            current_binding["live_timed_danmu_list"] = [
-                {
-                    "delay": max(1, int(item.get("delay", 300))),
-                    "text": str(item.get("text", "")).strip(),
-                    "enabled": bool(item.get("enabled", True)),
-                }
-                for item in raw_list
-                if isinstance(item, dict) and str(item.get("text", "")).strip()
-            ]
     # 自动发言配置（按房间绑定保存）
     if "auto_speak" in update:
         current_binding["auto_speak"] = _normalize_auto_speak(
@@ -282,8 +267,6 @@ def normalize_config_update(current_config, update, room_id=None):
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
     next_config["features"].pop("enable_local_notification", None)
-    # apply_room_binding 注入的运行时字段不写盘，避免与 room_bindings 重复
-    next_config["features"].pop("live_timed_danmu_list", None)
 
     # 滤词列表
     if "filter_words" in update:

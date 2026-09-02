@@ -16,7 +16,6 @@ export function useSettings(visible) {
 	const windowSize = ref('default')
 	const features = ref(createDefaultFeatures())
 	const filterWords = ref([])
-	const liveTimedDanmuList = ref([])
 
 	const themeOptions = computed(() => frontendConfig.value?.themeOptions || [])
 	const windowSizeOptions = computed(() => frontendConfig.value?.windowSizeOptions || [])
@@ -53,16 +52,6 @@ export function useSettings(visible) {
 			features.value[key] = Boolean(configFeatures[key])
 		})
 
-		const rawList =
-			roomBinding.live_timed_danmu_list ?? configFeatures.live_timed_danmu_list ?? []
-		liveTimedDanmuList.value = Array.isArray(rawList)
-			? rawList.map((item) => ({
-					delay: Number(item.delay) || 300,
-					text: String(item.text || ''),
-					enabled: item.enabled !== false,
-				}))
-			: []
-
 		filterWords.value = Array.isArray(config.filter_words) ? [...config.filter_words] : []
 	}
 
@@ -77,13 +66,6 @@ export function useSettings(visible) {
 		return {
 			room_ids: roomIdNum !== null ? [roomIdNum] : [],
 			frontend: { theme: theme.value, window_size: windowSize.value },
-			live_timed_danmu_list: liveTimedDanmuList.value
-				.filter((item) => item.text.trim())
-				.map((item) => ({
-					delay: Number(item.delay) || 300,
-					text: String(item.text).trim(),
-					enabled: item.enabled !== false,
-				})),
 			features: { ...features.value },
 			filter_words: [...filterWords.value],
 		}
@@ -140,7 +122,6 @@ export function useSettings(visible) {
 		themeOptions,
 		windowSizeOptions,
 		filterWords,
-		liveTimedDanmuList,
 		save,
 	}
 }

@@ -140,6 +140,11 @@ class CloseApi(FrontendConfigApi):
         rooms = []
         for rid in room_ids:
             binding = bindings.get(str(rid), {})
+            auto_speak = binding.get("auto_speak", {}) or {}
+            auto_task_count = sum(
+                len([i for i in auto_speak.get(k, []) or [] if i.get("enabled", True)])
+                for k in ("cycle_list", "duration_list")
+            )
             status = by_id.get(str(rid), {})
             # 封面：优先本地 JSON 缓存，未命中则下载并持久化
             cover_data = fetch_room_cover(rid, status.get("cover", ""))
@@ -157,9 +162,7 @@ class CloseApi(FrontendConfigApi):
                     "local_notification": bool(
                         binding.get("enable_local_notification", False)
                     ),
-                    "timed_danmu_count": len(
-                        binding.get("live_timed_danmu_list", []) or []
-                    ),
+                    "auto_task_count": auto_task_count,
                     "listening": str(rid) in listening_ids,
                     "last_error": status.get("last_error"),
                 }

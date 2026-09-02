@@ -239,8 +239,8 @@ onUnmounted(() => clearInterval(timer))
 									><span>当前状态</span>
 								</div>
 								<div>
-									<b>{{ room.timed_danmu_count }}</b
-									><span>定时任务</span>
+									<b>{{ room.auto_task_count }}</b
+									><span>自动任务</span>
 								</div>
 							</div>
 							<p v-if="room.last_error" class="room-error">{{ room.last_error }}</p>

@@ -74,28 +74,9 @@ async def live_start_handler(event, ctx):
     room_registry.set_live_state(ctx.lesson_room_id, 1)
     print("直播开始：", event)
 
-    # 自动发言（定时循环 + 直播时长触发）：独立于开播通知开关，由 auto_speak.enabled 控制
+    # 自动发言（定时循环 + 直播时长触发）：由 auto_speak.enabled 控制，每次开播启动
     if is_new_live:
         _start_auto_speak(ctx)
-
-    # 状态始终更新；定时弹幕按房间配置继续执行
-    # 开播通知改为直接由“直播时长触发”规则里新增 duration=0 的任务发送，不再单独用 LIVE 事件兜底。
-
-    # 定时弹幕：直接读取该房间的 live_timed_danmu_list，开播后逐条延迟发送
-    if is_new_live:
-        danmu_list = ctx.features.get("live_timed_danmu_list", [])
-        if isinstance(danmu_list, list):
-            for item in danmu_list:
-                if not isinstance(item, dict):
-                    continue
-                delay = max(1, int(item.get("delay", 300)))
-                text = str(item.get("text", "")).strip()
-                if not text:
-                    continue
-                if not item.get("enabled", True):
-                    continue
-                print(f"定时弹幕已安排：{delay} 秒后发送「{text}」")
-                asyncio.create_task(_send_timed_danmu(delay, text, ctx))
 
     # 无论是否启用本地通知，LIVE 事件都代表一次新的开播周期。
     ctx.live_started_notified = True
@@ -112,7 +93,7 @@ async def live_end_handler(event, ctx):
 
 
 async def _send_danmaku(ctx, message: str):
-    """发送弹幕到直播间 —— 自动发言 / 定时弹幕共用的发送逻辑，
+    """发送弹幕到直播间 —— 自动发言（循环 / 时长触发）共用的发送逻辑，
     与 api.py 的 sendDanmu 保持一致（构造 Danmaku 后调用 sender.send_danmaku）。"""
     if ctx.sender is None:
         print("发送弹幕失败：sender 未初始化")
@@ -130,17 +111,6 @@ async def _send_danmaku(ctx, message: str):
     except Exception as e:
         print(f"发送弹幕失败：{e}")
         return None
-
-
-async def _send_timed_danmu(delay_seconds: int, message: str, ctx):
-    """延迟指定秒数后发送弹幕到直播间"""
-    try:
-        await asyncio.sleep(delay_seconds)
-        await _send_danmaku(ctx, message)
-    except asyncio.CancelledError:
-        print("定时弹幕任务已取消")
-    except Exception as e:
-        print(f"定时弹幕发送失败：{e}")
 
 
 # ==================== 自动发言 ====================

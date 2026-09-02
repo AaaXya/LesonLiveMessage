@@ -6,22 +6,21 @@
   "room_bindings": {
     "1879006019": {
       "enable_local_notification": true,
-      "live_timed_danmu_list": [
-        {
-          "delay": 30,
-          "text": "直播开始啦，欢迎各位观众~",
-          "enabled": true
-        },
-        {
-          "delay": 10800,
-          "text": "已经开播三小时啦，感谢大家陪伴！",
-          "enabled": true
-        }
-      ],
       "auto_speak": {
         "enabled": true,
         "cycle_list": [],
-        "duration_list": [],
+        "duration_list": [
+          {
+            "duration": 30,
+            "text": "直播开始啦，欢迎各位观众~",
+            "enabled": true
+          },
+          {
+            "duration": 10800,
+            "text": "已经开播三小时啦，感谢大家陪伴！",
+            "enabled": true
+          }
+        ],
         "keyword_replies": [
           {
             "enabled": true,
@@ -38,8 +37,7 @@
       }
     },
     "1933933419": {
-      "enable_local_notification": true,
-      "live_timed_danmu_list": []
+      "enable_local_notification": true
     }
   },
   "frontend": {

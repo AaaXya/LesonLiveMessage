@@ -12,17 +12,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const {
-	status,
-	roomId,
-	roomFixed,
-	theme,
-	features,
-	themeOptions,
-	filterWords,
-	liveTimedDanmuList,
-	save,
-} = useSettings(toRef(props, 'visible'))
+const { status, roomId, roomFixed, theme, features, themeOptions, filterWords, save } = useSettings(
+	toRef(props, 'visible'),
+)
 
 const featuresBeforeLiveStart = ['enable_danmaku', 'enable_guard_buy', 'enable_super_chat']
 const featuresAfterLiveStart = ['enable_gift', 'web_debug']
@@ -48,15 +40,6 @@ function addFilterWord() {
 
 function removeFilterWord(index) {
 	filterWords.value.splice(index, 1)
-}
-
-// 定时弹幕列表操作
-function addTimedDanmu() {
-	liveTimedDanmuList.value.push({ delay: 300, text: '', enabled: true })
-}
-
-function removeTimedDanmu(index) {
-	liveTimedDanmuList.value.splice(index, 1)
 }
 
 function handleOverlayClick(event) {
@@ -138,54 +121,6 @@ async function handleSave() {
 				<input v-model="features[key]" type="checkbox" />
 				{{ FEATURE_LABELS[key] }}
 			</label>
-
-			<div class="settings-feature-block">
-				<div class="settings-group-title" style="margin-top: 0">开播定时弹幕</div>
-				<div
-					v-for="(item, idx) in liveTimedDanmuList"
-					:key="idx"
-					class="settings-timed-item"
-				>
-					<div class="settings-timed-item-header">
-						<label class="settings-check" style="margin-bottom: 0">
-							<input v-model="item.enabled" type="checkbox" />
-							弹幕 #{{ idx + 1 }}
-						</label>
-						<button
-							type="button"
-							class="settings-timed-item-del"
-							@click="removeTimedDanmu(idx)"
-						>
-							×
-						</button>
-					</div>
-					<label class="settings-field settings-field-nested">
-						延迟（秒）
-						<input
-							v-model.number="item.delay"
-							type="number"
-							inputmode="numeric"
-							min="1"
-							placeholder="300"
-						/>
-					</label>
-					<label class="settings-field settings-field-nested">
-						弹幕内容
-						<input
-							v-model="item.text"
-							type="text"
-							maxlength="30"
-							placeholder="输入弹幕内容..."
-						/>
-					</label>
-				</div>
-				<button type="button" class="settings-timed-add-btn" @click="addTimedDanmu">
-					+ 添加一条定时弹幕
-				</button>
-				<div v-if="liveTimedDanmuList.length === 0" class="settings-filter-words-empty">
-					暂无定时弹幕，点击上方按钮添加
-				</div>
-			</div>
 
 			<div class="settings-feature-block">
 				<label class="settings-check">
@@ -585,79 +520,5 @@ async function handleSave() {
 	color: var(--text-muted);
 	text-align: center;
 	padding: 6px 0;
-}
-
-/* ---- 定时弹幕列表 ---- */
-.settings-timed-item {
-	border: 1px solid var(--border);
-	border-radius: 6px;
-	padding: 10px;
-	margin-bottom: 10px;
-	background: var(--surface);
-}
-
-.settings-timed-item-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 6px;
-}
-
-.settings-timed-item-label {
-	font-size: 0.8rem;
-	font-weight: 600;
-	color: var(--text-muted);
-}
-
-.settings-timed-item-del {
-	flex-shrink: 0;
-	width: 22px;
-	height: 22px;
-	padding: 0;
-	border: none;
-	border-radius: 50%;
-	background: transparent;
-	color: var(--text-muted);
-	font-size: 1.1rem;
-	line-height: 1;
-	cursor: pointer;
-	transition:
-		color 0.15s ease,
-		background 0.15s ease;
-}
-
-.settings-timed-item-del:hover:not(:disabled) {
-	color: #ff6b6b;
-	background: rgba(255, 107, 107, 0.15);
-}
-
-.settings-timed-item-del:disabled {
-	opacity: 0.35;
-	cursor: not-allowed;
-}
-
-.settings-timed-add-btn {
-	width: 100%;
-	padding: 8px 0;
-	border: 1px dashed var(--border);
-	border-radius: 6px;
-	background: transparent;
-	color: var(--text-muted);
-	cursor: pointer;
-	font-size: 0.82rem;
-	font-weight: 600;
-	transition:
-		border-color 0.15s ease,
-		color 0.15s ease;
-}
-
-.settings-timed-add-btn:hover:not(:disabled) {
-	border-color: var(--name-text);
-	color: var(--name-text);
-}
-
-.settings-timed-add-btn:disabled {
-	opacity: 0.35;
-	cursor: not-allowed;
 }
 </style>
