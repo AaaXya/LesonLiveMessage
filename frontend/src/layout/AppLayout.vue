@@ -12,6 +12,7 @@ const menuItems = [
 	{ name: 'database', label: '弹幕数据', icon: 'database' },
 	{ name: 'gifts', label: '礼物数据', icon: 'buy' },
 	{ name: 'analytics', label: '数据分析', icon: 'chart' },
+	{ name: 'auto-speak', label: '自动发言', icon: 'comment' },
 	{ name: 'settings', label: '设置', icon: 'setting' },
 ]
 const activeName = computed(() => route.name)
@@ -36,8 +37,8 @@ document.documentElement.classList.toggle('dark', !isLight.value)
 				<d-button
 					v-for="item in menuItems"
 					:key="item.name"
-					:type="button"
-					:size="sm"
+					type="button"
+					size="sm"
 					:variant="activeName === item.name ? 'solid' : 'text'"
 					:color="activeName === item.name ? 'primary' : 'secondary'"
 					class="nav-item"

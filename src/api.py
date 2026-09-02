@@ -3,6 +3,8 @@ api.py — CloseApi：前后端桥接层
 供 webview（JS API）和 web 模式（HTTP API）共用。
 """
 
+import inspect
+
 from bilibili_api import live, sync
 from .frontend_config import FrontendConfigApi
 
@@ -77,26 +79,44 @@ class CloseApi(FrontendConfigApi):
 
     # ==================== 弹幕发送 ====================
 
-    def sendDanmu(self, message):
+    def sendDanmu(self, message, room_id=None):
         if not message:
             return {"ok": False, "error": "弹幕内容不能为空"}
 
-        sender = self._ctx.sender
+        sender = None
+        room_id_str = str(room_id).strip() if room_id is not None else ""
+
+        if room_id_str and self._room_manager:
+            room_ctx = self._room_manager._rooms.get(room_id_str)
+            if room_ctx is not None:
+                sender = room_ctx.sender
+
         if sender is None:
+            sender = self._ctx.sender
+
+        if sender is None:
+            if room_id_str:
+                return {"ok": False, "error": f"房间 {room_id_str} 发送器未初始化"}
             return {"ok": False, "error": "弹幕发送器未初始化"}
 
         try:
             if hasattr(sender, "send_danmaku"):
                 if hasattr(live, "Danmaku"):
                     danmaku = live.Danmaku(message)
-                    result = sync(sender.send_danmaku(danmaku))
+                    payload = sender.send_danmaku(danmaku)
                 else:
-                    result = sync(sender.send_danmaku(message))
+                    payload = sender.send_danmaku(message)
+                result = sync(payload) if inspect.isawaitable(payload) else payload
             else:
                 print("sendDanmu: 未找到可用的发送弹幕方法")
                 return {"ok": False, "error": "后端不支持发送弹幕"}
 
-            print("发送弹幕：", message, "结果：", result)
+            print(
+                f"发送弹幕到房间 {room_id_str or self._ctx.lesson_room_id}：",
+                message,
+                "结果：",
+                result,
+            )
             return {"ok": True, "result": result}
         except Exception as e:
             print("发送弹幕失败：", e)

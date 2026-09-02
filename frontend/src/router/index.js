@@ -5,6 +5,7 @@ import ConsoleView from '../views/ConsoleView.vue'
 import DatabaseView from '../views/DatabaseView.vue'
 import GiftsView from '../views/GiftsView.vue'
 import AnalyticsView from '../views/AnalyticsView.vue'
+import AutoSpeakView from '../views/AutoSpeakView.vue'
 import SettingsView from '../views/SettingsView.vue'
 
 // hash 模式：兼容 pywebview file:// 加载与 web 模式 HTTP 服务
@@ -41,6 +42,12 @@ const router = createRouter({
 			name: 'analytics',
 			component: AnalyticsView,
 			meta: { title: '数据分析', icon: 'chart' },
+		},
+		{
+			path: '/auto-speak',
+			name: 'auto-speak',
+			component: AutoSpeakView,
+			meta: { title: '自动发言', icon: 'comment' },
 		},
 		{
 			path: '/settings',

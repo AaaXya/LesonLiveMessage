@@ -150,7 +150,9 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == "/api/danmu":
-            result = self.api.sendDanmu(body.get("message", ""))
+            result = self.api.sendDanmu(
+                body.get("message", ""), room_id=body.get("room_id")
+            )
             _json_response(self, result)
             return
 

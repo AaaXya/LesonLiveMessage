@@ -134,13 +134,6 @@ async function handleSave() {
 				{{ FEATURE_LABELS[key] }}
 			</label>
 
-			<div class="settings-feature-block">
-				<label class="settings-check">
-					<input v-model="features.enable_live_start" type="checkbox" />
-					{{ FEATURE_LABELS.enable_live_start }}
-				</label>
-			</div>
-
 			<label v-for="key in featuresAfterLiveStart" :key="key" class="settings-check">
 				<input v-model="features[key]" type="checkbox" />
 				{{ FEATURE_LABELS[key] }}

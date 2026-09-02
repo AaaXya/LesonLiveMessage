@@ -38,8 +38,8 @@ export function initThemeLoader() {
 	whenPywebviewReady(tryLoad)
 }
 
-export function getCurrentRoomBinding(config) {
-	const roomId = String(config?.LESSONROOMID || '').trim()
+export function getCurrentRoomBinding(config, roomIdOverride = null) {
+	const roomId = String(roomIdOverride ?? (config?.LESSONROOMID || '')).trim()
 	const bindings = config?.room_bindings || {}
 	return bindings[roomId] || {}
 }

@@ -9,12 +9,58 @@ FEATURE_KEYS = (
     "enable_danmaku",
     "enable_guard_buy",
     "enable_super_chat",
-    "enable_live_start",
     "enable_gift",
     "enable_danmu_db",
     "web_debug",
     "open_mode",
 )
+
+# ---- 自动发言默认配置（全局配置，不按房间隔离） ----
+DEFAULT_AUTO_SPEAK = {
+    "enabled": False,
+    "cycle_list": [],  # 定时循环：{interval(秒), text, enabled}
+    "duration_list": [],  # 直播时长触发：{duration(秒), text, enabled}
+    "keyword_replies": [],  # 关键词自动回复：{keyword, reply, enabled}
+    "quick_sends": [],  # 常用弹幕快捷发送：{text, enabled}
+}
+
+
+def _normalize_auto_speak(raw):
+    """规范化自动发言配置，确保各列表项字段完整、类型正确"""
+    if not isinstance(raw, dict):
+        raw = {}
+
+    def _rows(items, numeric_keys=(), text_keys=()):
+        result = []
+        for it in items or []:
+            if not isinstance(it, dict):
+                continue
+            row = {"enabled": bool(it.get("enabled", True))}
+            for k in numeric_keys:
+                try:
+                    row[k] = max(0, int(float(str(it.get(k, 0)))))
+                except (TypeError, ValueError):
+                    row[k] = 0
+            for k in text_keys:
+                row[k] = str(it.get(k, "")).strip()
+            result.append(row)
+        return result
+
+    return {
+        "enabled": bool(raw.get("enabled", False)),
+        "cycle_list": _rows(raw.get("cycle_list", []), ("interval",), ("text",)),
+        "duration_list": _rows(raw.get("duration_list", []), ("duration",), ("text",)),
+        "keyword_replies": _rows(
+            raw.get("keyword_replies", []), (), ("keyword", "reply")
+        ),
+        "quick_sends": _rows(raw.get("quick_sends", []), (), ("text",)),
+    }
+
+
+def load_auto_speak(config):
+    """读取自动发言配置，缺失或损坏时回退默认结构"""
+    return _normalize_auto_speak(config.get("auto_speak", {}) or {})
+
 
 # ---- webview 窗口大小预设 ----
 WINDOW_SIZE_PRESETS = {
@@ -84,6 +130,11 @@ def apply_room_binding(config, room_id=None):
     # 定时弹幕
     features["live_timed_danmu_list"] = list(binding.get("live_timed_danmu_list", []))
     next_config["features"] = features
+
+    # 自动发言按房间独立保存/读取，兼容全局旧配置兜底
+    next_config["auto_speak"] = _normalize_auto_speak(
+        binding.get("auto_speak", next_config.get("auto_speak", {}))
+    )
     return next_config
 
 
@@ -222,6 +273,12 @@ def normalize_config_update(current_config, update, room_id=None):
                 for item in raw_list
                 if isinstance(item, dict) and str(item.get("text", "")).strip()
             ]
+    # 自动发言配置（按房间绑定保存）
+    if "auto_speak" in update:
+        current_binding["auto_speak"] = _normalize_auto_speak(
+            update.get("auto_speak", {}) or {}
+        )
+        next_config["auto_speak"] = current_binding["auto_speak"]
     bindings[room_id] = current_binding
     next_config["room_bindings"] = bindings
     next_config["features"].pop("enable_local_notification", None)

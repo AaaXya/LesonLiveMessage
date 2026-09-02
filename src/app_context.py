@@ -41,6 +41,12 @@ class AppContext:
         self.live_started_notified = False  # 本次监听周期内是否已发送开播通知
         self.stop_flag = threading.Event()  # 停止监听标志（按需监听用）
 
+        # ---- 自动发言任务（生命周期跟随直播间开播/下播） ----
+        self.auto_speak_tasks = (
+            []
+        )  # [(asyncio.Task, asyncio.Event)]：定时循环 + 时长触发
+        self.live_started_at = None  # 本次开播时间戳（直播时长触发用）
+
         # ---- 事件外接（按需监听时把事件转给主队列） ----
         self._event_sink = None
 
@@ -55,7 +61,11 @@ class AppContext:
         config_path = os.path.join(DATA_ROOT, "config.json")
         if not os.path.exists(config_path):
             # 首次运行 / 打包后的全新目录：生成默认配置并落盘，避免 FileNotFoundError
-            from .frontend_config import FEATURE_KEYS, save_app_config
+            from .frontend_config import (
+                DEFAULT_AUTO_SPEAK,
+                FEATURE_KEYS,
+                save_app_config,
+            )
 
             default_config = {
                 "room_ids": [],
@@ -63,6 +73,7 @@ class AppContext:
                 "frontend": {"theme": "default", "window_size": "default"},
                 "features": {key: False for key in FEATURE_KEYS},
                 "filter_words": [],
+                "auto_speak": dict(DEFAULT_AUTO_SPEAK),
             }
             save_app_config(default_config)
             print(f"已生成默认配置文件：{config_path}")

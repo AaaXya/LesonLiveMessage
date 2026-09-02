@@ -117,6 +117,7 @@ onMounted(() => {
 					{{ FEATURE_LABELS[key] }}
 				</d-checkbox>
 			</div>
+
 			<div class="section-label">弹幕过滤词</div>
 			<div class="filter">
 				<input

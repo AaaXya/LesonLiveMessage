@@ -113,9 +113,15 @@ def parse_gift(raw_data):
         if actual_coin == 0:
             actual_coin = gift_data.get("combo_total_coin", 0)
         if actual_coin == 0:
-            actual_coin = gift_data.get("original_gift_price", 0) or gift_data.get(
-                "price", 0
-            ) * gift_data.get("num", 1)
+            original_price = gift_data.get("original_gift_price", 0)
+            price = gift_data.get("price", 0)
+            num = gift_data.get("num", 1)
+            if original_price not in (None, 0):
+                actual_coin = original_price * num
+            elif price not in (None, 0):
+                actual_coin = price * num
+            else:
+                actual_coin = 0
 
         paid_coin = gift_data.get("discount_price")
         if paid_coin is None:

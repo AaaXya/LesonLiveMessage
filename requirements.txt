@@ -2,5 +2,6 @@ aiohttp
 bilibili-api
 Pillow
 plyer
+PyInstaller
 pywebview
 requests

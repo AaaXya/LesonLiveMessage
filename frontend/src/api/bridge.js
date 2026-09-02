@@ -78,17 +78,17 @@ export async function saveFrontendConfig(update) {
 	return getApi().saveFrontendConfig(update)
 }
 
-export async function sendDanmu(text) {
+export async function sendDanmu(text, roomId = null) {
 	if (isWebMode()) {
 		return fetchApi('/danmu', {
 			method: 'POST',
-			body: JSON.stringify({ message: text }),
+			body: JSON.stringify({ message: text, room_id: roomId ?? null }),
 		})
 	}
 	if (!hasMethod('sendDanmu')) {
 		return { ok: false, error: '后端发送接口不可用' }
 	}
-	return getApi().sendDanmu(text)
+	return getApi().sendDanmu(text, roomId)
 }
 
 export function closeWindow() {

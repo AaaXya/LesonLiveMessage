@@ -17,10 +17,28 @@
           "text": "已经开播三小时啦，感谢大家陪伴！",
           "enabled": true
         }
-      ]
+      ],
+      "auto_speak": {
+        "enabled": true,
+        "cycle_list": [],
+        "duration_list": [],
+        "keyword_replies": [
+          {
+            "enabled": true,
+            "keyword": "小雅",
+            "reply": "我在"
+          }
+        ],
+        "quick_sends": [
+          {
+            "enabled": true,
+            "text": "千山万水总是情，上个舰长行不行~"
+          }
+        ]
+      }
     },
     "1933933419": {
-      "enable_local_notification": false,
+      "enable_local_notification": true,
       "live_timed_danmu_list": []
     }
   },
@@ -46,5 +64,23 @@
     "小礼物和弹幕都是对主播的支持哦，比心心~",
     "你已经是成熟的观众了，该学会自己上船了~",
     "修炼"
-  ]
+  ],
+  "auto_speak": {
+    "enabled": true,
+    "cycle_list": [],
+    "duration_list": [],
+    "keyword_replies": [
+      {
+        "enabled": true,
+        "keyword": "小雅",
+        "reply": "我在"
+      }
+    ],
+    "quick_sends": [
+      {
+        "enabled": true,
+        "text": "千山万水总是情，上个舰长行不行~"
+      }
+    ]
+  }
 }

@@ -73,12 +73,10 @@ export function useSettings(visible) {
 	}
 
 	function collectUpdate() {
-		// 开播通知开启时，同时启用本机桌面通知
 		const roomIdNum = parseRoomId()
 		return {
 			room_ids: roomIdNum !== null ? [roomIdNum] : [],
 			frontend: { theme: theme.value, window_size: windowSize.value },
-			enable_local_notification: Boolean(features.value.enable_live_start),
 			live_timed_danmu_list: liveTimedDanmuList.value
 				.filter((item) => item.text.trim())
 				.map((item) => ({
