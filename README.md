@@ -134,10 +134,8 @@ cd ..
 					{ "duration": 10800, "text": "已经开播三小时啦！", "enabled": true }
 				],
 				"keyword_replies": [
-					{ "keyword": "小雅", "reply": "我在", "enabled": true }
 				],
 				"quick_sends": [
-					{ "text": "千山万水总是情，上个舰长行不行~", "enabled": true }
 				]
 			}
 		},
