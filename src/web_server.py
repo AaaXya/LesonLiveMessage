@@ -83,6 +83,11 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             _json_response(self, result)
             return
 
+        if path == "/api/login/status":
+            result = self.api.getLoginStatus()
+            _json_response(self, result)
+            return
+
         if path == "/api/console":
             qs = urllib.parse.parse_qs(parsed.query)
             since = int(qs.get("since", [0])[0])
@@ -168,6 +173,11 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
             _json_response(self, result)
             return
 
+        if path == "/api/login/start":
+            result = self.api.startQrLogin()
+            _json_response(self, result)
+            return
+
         _json_response(self, {"ok": False, "error": "未知接口"}, status=404)
 
     # ---- CORS ----
@@ -180,12 +190,12 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
 
-def start_web_server(ctx, port=8080, room_manager=None):
+def start_web_server(ctx, port=8080, room_manager=None, login=None):
     """启动 web 模式 HTTP 服务器（阻塞）"""
 
     # 设置类属性，每个请求的 handler 实例自动继承
     APIHandler.ctx = ctx
-    APIHandler.api = CloseApi(ctx, room_manager)
+    APIHandler.api = CloseApi(ctx, room_manager, login)
 
     server = http.server.HTTPServer(("127.0.0.1", port), APIHandler)
     url = f"http://127.0.0.1:{port}?mode=web"

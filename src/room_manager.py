@@ -33,6 +33,10 @@ class RoomManager:
         """web 模式：弹幕推送到主上下文的事件队列"""
         self._event_sink = sink
 
+    def set_credential(self, credential):
+        """登录完成后注入凭据（应用内扫码登录成功后调用）"""
+        self.credential = credential
+
     def _init_room(self, rid_str):
         ctx = AppContext(room_id=rid_str)
         room_id = ctx.lesson_room_id

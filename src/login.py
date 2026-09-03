@@ -6,6 +6,7 @@ import time
 import asyncio
 import base64
 import tempfile
+import threading
 import webbrowser
 import requests
 from bilibili_api import login_v2, Credential, sync
@@ -80,8 +81,14 @@ def create_credential_from_cookies(cookies_dict):
         return None
 
 
-def check_login_with_cookies(cookies_dict) -> bool:
-    """验证 cookies 是否有效"""
+def evaluate_login_with_cookies(cookies_dict):
+    """评估 cookies 登录状态（三态，用于区分“失效”与“无法判定”）
+
+    返回:
+      True  - 已登录，cookies 有效
+      False - 服务端明确未登录（凭据失效/过期）
+      None  - 无法判定（网络异常等瞬时错误），不应据此判定失效而触发重登
+    """
     if not cookies_dict:
         return False
     try:
@@ -99,10 +106,18 @@ def check_login_with_cookies(cookies_dict) -> bool:
             and data.get("data", {}).get("mid")
         ):
             return True
+        # 服务端明确返回未登录等错误码：凭据确实失效
         print("登录校验未通过，返回数据：", data)
+        return False
     except Exception as e:
+        # 网络异常等：无法确认凭据失效，按“不确定”处理，避免误弹登录页
         print("验证 cookies 时出错：", e)
-    return False
+        return None
+
+
+def check_login_with_cookies(cookies_dict) -> bool:
+    """验证 cookies 是否有效（布尔版，供简单判断使用）"""
+    return evaluate_login_with_cookies(cookies_dict) is True
 
 
 def _open_qrcode_guide(qrcode_path: str) -> None:
@@ -162,20 +177,20 @@ async def qrcode_login() -> dict:
 def get_credential(cookies_file: str, roomid: int) -> Credential:
     """获取有效的 Credential 对象
 
-    优先级：
-    1. 本地 cookies.json
-    2. 环境变量预设 cookies
-    3. 二维码登录
+    行为（兼顾“不打扰正常启动”与“不带失效凭据硬启动”）：
+    1. 本地 cookies 仍有效 → 直接使用，不弹任何登录页
+    2. 本地 cookies 明确失效（服务端返回未登录）→ 重新二维码登录拿到新凭据后再继续
+    3. 本地 cookies 无法判定（网络异常等瞬时错误）→ 先沿用本地凭据继续，不弹登录页
+    4. 无本地 cookies / 无预设 → 首次二维码登录
 
     Args:
         cookies_file: cookies.json 文件路径
-        roomid: 直播间ID，用于保存到 .env
+        roomid: 直播间ID（预留，兼容旧签名）
 
     Returns:
-        Credential 对象，若失败则返回 None
+        Credential 对象；登录失败且无法恢复时返回 None
     """
     cookies = None
-    obtained_from_qrcode = False
     try:
         if os.path.exists(cookies_file):
             with open(cookies_file, "r", encoding="utf-8") as f:
@@ -187,8 +202,8 @@ def get_credential(cookies_file: str, roomid: int) -> Credential:
                 json.dump(cookies, f, ensure_ascii=False)
             print("Saved preset cookies to", cookies_file)
         else:
+            # 首次运行：直接二维码登录（登录成功即视为有效，无需再在线复核）
             cookies = sync(qrcode_login())
-            obtained_from_qrcode = True
             with open(cookies_file, "w", encoding="utf-8") as f:
                 json.dump(cookies, f, ensure_ascii=False)
             print("Saved fetched cookies to", cookies_file)
@@ -196,26 +211,171 @@ def get_credential(cookies_file: str, roomid: int) -> Credential:
         print("处理 cookies 时出错：", e)
         return None
 
-    # 规范化并验证 cookies
     norm = normalize_cookies(cookies)
-    logged_in = check_login_with_cookies(norm)
-    credential = create_credential_from_cookies(norm)
+    login_state = evaluate_login_with_cookies(norm)
 
-    if not logged_in and obtained_from_qrcode:
-        # 二维码登录本身已取得 Credential；在线校验偶发失败时不要阻断主窗口启动。
-        print("二维码登录已完成，但在线校验未通过，继续使用刚获取的凭据启动")
-    elif not logged_in:
-        print("当前 cookies 无效，开始重新二维码登录获取 cookies")
+    if login_state is True:
+        return create_credential_from_cookies(norm)
+
+    if login_state is False:
+        # cookies 已失效：不带无效凭据硬打开客户端，先重新扫码登录
+        print("本地 cookies 已失效，开始二维码登录获取新凭据")
         try:
             new_cookies = sync(qrcode_login())
-            norm = normalize_cookies(new_cookies)
-            if not check_login_with_cookies(norm):
-                print("二维码登录已完成，但在线校验未通过，继续使用刚获取的凭据启动")
             with open(cookies_file, "w", encoding="utf-8") as f:
                 json.dump(new_cookies, f, ensure_ascii=False)
-            credential = create_credential_from_cookies(norm)
+            return create_credential_from_cookies(normalize_cookies(new_cookies))
         except Exception as e:
-            print("重新获取 cookies 失败：", e)
+            print("重新二维码登录失败：", e)
             return None
 
-    return credential
+    # login_state 为 None：网络异常等瞬时问题，先沿用本地凭据启动，不弹登录页
+    print("cookies 在线校验暂不可用（网络异常？），先沿用本地凭据启动")
+    return create_credential_from_cookies(norm)
+
+
+class LoginManager:
+    """应用内扫码登录协调器：后台线程轮询，二维码直接由前端展示。"""
+
+    def __init__(self, cookies_file, on_success=None):
+        self.cookies_file = cookies_file
+        self._on_success = on_success
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
+        self.credential = None
+        self._state = {
+            "status": "checking",  # checking | ok | scanning | timeout | error
+            "message": "",
+            "qr_data": None,
+        }
+
+    # ---------- 状态 ----------
+
+    def snapshot(self):
+        with self._lock:
+            return dict(self._state)
+
+    def _set(self, **kw):
+        with self._lock:
+            self._state.update(kw)
+
+    def _notify(self):
+        cb = self._on_success
+        if cb is None:
+            return
+        try:
+            cb(self.credential)
+        except Exception as e:
+            print("登录成功回调失败：", e)
+
+    # ---------- 二维码登录 ----------
+
+    def start_qr(self):
+        """开始/刷新二维码登录：结束旧轮询并新开后台线程。"""
+        self._stop_event.set()
+        self._stop_event = threading.Event()
+        self._set(
+            status="scanning", message="请使用 B 站手机客户端扫码登录", qr_data=None
+        )
+        threading.Thread(target=self._run_qr, daemon=True).start()
+        return True
+
+    def _run_qr(self):
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._qr_loop())
+        except Exception as e:
+            print("二维码登录出错：", e)
+            self._set(status="error", message=f"登录出错：{e}")
+        finally:
+            try:
+                asyncio.get_event_loop().close()
+            except Exception:
+                pass
+
+    async def _qr_loop(self):
+        qr = login_v2.QrCodeLogin(platform=login_v2.QrCodeLoginChannel.WEB)
+        await qr.generate_qrcode()
+        qrcode_path = os.path.join(tempfile.gettempdir(), "qrcode.png")
+        try:
+            with open(qrcode_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("ascii")
+        except Exception as e:
+            self._set(status="error", message=f"读取二维码失败：{e}")
+            return
+        self._set(qr_data=f"data:image/png;base64,{b64}", status="scanning")
+
+        stop = self._stop_event
+        while not stop.is_set():
+            try:
+                state = await qr.check_state()
+            except Exception as e:
+                print("查询扫码状态失败：", e)
+                await asyncio.sleep(3)
+                continue
+            print("Bilibili 扫码状态：", state)
+            if state == login_v2.QrCodeLoginEvents.DONE:
+                break
+            if state == login_v2.QrCodeLoginEvents.TIMEOUT:
+                self._set(status="timeout", message="二维码已过期，请点击刷新重试")
+                return
+            await asyncio.sleep(3)
+
+        cookies = qr.get_credential().get_cookies()
+        with open(self.cookies_file, "w", encoding="utf-8") as f:
+            json.dump(cookies, f, ensure_ascii=False)
+        self.credential = create_credential_from_cookies(normalize_cookies(cookies))
+        self._set(status="ok", message="登录成功")
+        self._notify()
+
+    # ---------- 启动时的登录探测 ----------
+
+    def bootstrap(self):
+        """后台探测本地凭据：有效→直接 ok，缺失/失效→自动发起二维码登录。"""
+
+        def _run():
+            try:
+                cred, state = resolve_existing_cookies(self.cookies_file)
+            except Exception as e:
+                print("登录探测失败：", e)
+                self.start_qr()
+                return
+            if state is True:
+                self.credential = cred
+                self._set(status="ok", message="已登录")
+                self._notify()
+            elif state is False:
+                self.start_qr()
+            else:
+                # state 为 None：网络异常等无法判定，先沿用本地凭据启动
+                self.credential = cred
+                self._set(status="ok", message="已登录（在线校验暂不可用）")
+                self._notify()
+
+        threading.Thread(target=_run, daemon=True).start()
+
+
+def resolve_existing_cookies(cookies_file):
+    """读取本地/预设 cookies 并在线校验。
+
+    返回 (credential, state)：
+      state True  - 有效
+      state False - 无凭据或已失效（需要登录）
+      state None  - 无法判定（网络异常），可先沿用本地凭据
+    """
+    cookies = None
+    if os.path.exists(cookies_file):
+        with open(cookies_file, "r", encoding="utf-8") as f:
+            cookies = json.load(f)
+        print("Loaded local cookies from", cookies_file)
+    elif load_preset_from_env():
+        cookies = load_preset_from_env()
+        with open(cookies_file, "w", encoding="utf-8") as f:
+            json.dump(cookies, f, ensure_ascii=False)
+        print("Saved preset cookies to", cookies_file)
+    norm = normalize_cookies(cookies or {})
+    if not norm:
+        return None, False
+    state = evaluate_login_with_cookies(norm)
+    return create_credential_from_cookies(norm), state

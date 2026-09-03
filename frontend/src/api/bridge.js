@@ -78,6 +78,20 @@ export async function saveFrontendConfig(update) {
 	return getApi().saveFrontendConfig(update)
 }
 
+export async function getLoginStatus() {
+	if (isWebMode()) {
+		return fetchApi('/login/status')
+	}
+	return callApi('getLoginStatus')
+}
+
+export async function startQrLogin() {
+	if (isWebMode()) {
+		return fetchApi('/login/start', { method: 'POST' })
+	}
+	return callApi('startQrLogin')
+}
+
 export async function sendDanmu(text, roomId = null) {
 	if (isWebMode()) {
 		return fetchApi('/danmu', {

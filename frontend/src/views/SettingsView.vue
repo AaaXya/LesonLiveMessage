@@ -20,6 +20,7 @@ const {
 } = useSettings(visible)
 
 const newFilter = ref('')
+const roomOptions = ref([])
 
 // d-select 的 options 需要 { name, value } 格式
 const themeSelectOptions = computed(() =>
@@ -37,22 +38,33 @@ function setFeature(key, checked) {
 	features.value[key] = checked
 }
 
-const roomOptions = computed(() => {
-	const ids = new Set()
+function refreshRoomOptions() {
+	const ids = new Map()
 	const config = frontendConfig.value?.config || {}
 	for (const id of config.room_ids || []) {
-		if (String(id).trim()) ids.add(String(id).trim())
+		const value = String(id).trim()
+		if (value && /^\d+$/.test(value)) ids.set(value, { name: `房间 ${value}`, value })
 	}
 	for (const key of Object.keys(config.room_bindings || {})) {
-		if (String(key).trim()) ids.add(String(key).trim())
+		const value = String(key).trim()
+		if (value && /^\d+$/.test(value)) ids.set(value, { name: `房间 ${value}`, value })
 	}
 	if (String(roomId.value || '').trim()) {
-		ids.add(String(roomId.value).trim())
+		const value = String(roomId.value).trim()
+		if (/^\d+$/.test(value)) ids.set(value, { name: `房间 ${value}`, value })
 	}
-	return [...ids]
-		.filter((id) => id && /^\d+$/.test(id))
-		.map((id) => ({ value: id, label: `房间 ${id}` }))
-})
+	roomOptions.value = [...ids.values()]
+}
+
+function handleRoomIdInput(value) {
+	const next = String(value ?? '').trim()
+	roomId.value = next
+	if (!next || !/^\d+$/.test(next)) {
+		refreshRoomOptions()
+		return
+	}
+	refreshRoomOptions()
+}
 
 function addFilter() {
 	const word = newFilter.value.trim()
@@ -81,6 +93,7 @@ onMounted(() => {
 					:options="roomOptions"
 					:disabled="roomFixed"
 					placeholder="选择或输入直播间 ID"
+					@input-change="handleRoomIdInput"
 				/>
 			</label>
 			<div class="settings-grid">

@@ -12,10 +12,26 @@ from .frontend_config import FrontendConfigApi
 class CloseApi(FrontendConfigApi):
     """前后端 API 桥接 — webview js_api / HTTP 端点共用"""
 
-    def __init__(self, ctx, room_manager=None):
+    def __init__(self, ctx, room_manager=None, login=None):
         super().__init__(room_id=ctx.fixed_room_id)
         self._ctx = ctx  # 下划线前缀：pywebview 不暴露给 JS，避免循环引用
         self._room_manager = room_manager
+        self._login = login
+
+    # ==================== 登录（应用内扫码） ====================
+
+    def getLoginStatus(self):
+        """前端登录浮层轮询：返回登录状态与二维码图片"""
+        if not self._login:
+            return {"ok": False, "error": "登录管理器未初始化"}
+        return {"ok": True, **self._login.snapshot()}
+
+    def startQrLogin(self):
+        """开始/刷新应用内二维码登录"""
+        if not self._login:
+            return {"ok": False, "error": "登录管理器未初始化"}
+        self._login.start_qr()
+        return {"ok": True, "message": "已开始二维码登录"}
 
     # ==================== 配置 ====================
 
