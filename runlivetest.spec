@@ -40,6 +40,10 @@ hiddenimports += [
     "bilibili_api.clients.AioHTTPClient",
     "bilibili_api.clients.HTTPXClient",
     "bilibili_api.clients.CurlCFFIClient",
+    # plyer.notification 通过动态导入选择 Windows 实现，显式收集避免打包后退回空实现
+    "plyer.platforms.win.notification",
+    "plyer.platforms.win.libs.balloontip",
+    "plyer.platforms.win.libs.win_api_defs",
 ]
 
 

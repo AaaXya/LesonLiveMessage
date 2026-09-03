@@ -3,6 +3,10 @@
 import os
 import json
 import time
+import asyncio
+import base64
+import tempfile
+import webbrowser
 import requests
 from bilibili_api import login_v2, Credential, sync
 
@@ -101,14 +105,55 @@ def check_login_with_cookies(cookies_dict) -> bool:
     return False
 
 
+def _open_qrcode_guide(qrcode_path: str) -> None:
+    """打开带分步说明的二维码登录页面，兼容无控制台的打包版。"""
+    with open(qrcode_path, "rb") as f:
+        qrcode_data = base64.b64encode(f.read()).decode("ascii")
+    guide_path = os.path.join(tempfile.gettempdir(), "runlivetest_qrcode_login.html")
+    html = f"""<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>RunLiveTest - Bilibili 扫码登录</title>
+<style>
+body {{ font-family: sans-serif; margin: 32px; color: #242424; }}
+h1 {{ font-size: 22px; margin-bottom: 8px; }}
+p {{ color: #666; }}
+ol {{ line-height: 1.9; padding-left: 28px; }}
+img {{ display: block; width: 280px; height: 280px; margin: 20px 0; }}
+strong {{ color: #d95f02; }}
+</style>
+<h1>Bilibili 账号扫码登录</h1>
+<p>首次运行需要使用你的 <strong>Bilibili 账号</strong> 完成登录。</p>
+<ol>
+  <li>打开手机上的 Bilibili 客户端。</li>
+  <li>进入“我的” → 扫一扫，扫描下方二维码。</li>
+  <li>手机显示登录确认后，点击确认登录。</li>
+  <li>登录成功后窗口会自动继续启动。</li>
+</ol>
+<img src="data:image/png;base64,{qrcode_data}" alt="Bilibili 登录二维码">
+</html>
+"""
+    with open(guide_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    webbrowser.open(f"file://{guide_path}")
+
+
 async def qrcode_login() -> dict:
     """二维码登录获取 cookies"""
     qr = login_v2.QrCodeLogin(platform=login_v2.QrCodeLoginChannel.WEB)
     await qr.generate_qrcode()
-    print(qr.get_qrcode_terminal())
+    qrcode_path = os.path.join(tempfile.gettempdir(), "qrcode.png")
+    try:
+        _open_qrcode_guide(qrcode_path)
+    except Exception as e:
+        print("打开二维码引导页失败：", e)
+        print(qr.get_qrcode_terminal())
     while not qr.has_done():
-        print(await qr.check_state())
-        time.sleep(10)
+        state = await qr.check_state()
+        print(f"Bilibili 扫码登录状态：{state}")
+        if state == login_v2.QrCodeLoginEvents.DONE:
+            break
+        await asyncio.sleep(10)
     cookies = qr.get_credential().get_cookies()
     print(cookies)
     return cookies
@@ -130,6 +175,7 @@ def get_credential(cookies_file: str, roomid: int) -> Credential:
         Credential 对象，若失败则返回 None
     """
     cookies = None
+    obtained_from_qrcode = False
     try:
         if os.path.exists(cookies_file):
             with open(cookies_file, "r", encoding="utf-8") as f:
@@ -142,6 +188,7 @@ def get_credential(cookies_file: str, roomid: int) -> Credential:
             print("Saved preset cookies to", cookies_file)
         else:
             cookies = sync(qrcode_login())
+            obtained_from_qrcode = True
             with open(cookies_file, "w", encoding="utf-8") as f:
                 json.dump(cookies, f, ensure_ascii=False)
             print("Saved fetched cookies to", cookies_file)
@@ -154,14 +201,16 @@ def get_credential(cookies_file: str, roomid: int) -> Credential:
     logged_in = check_login_with_cookies(norm)
     credential = create_credential_from_cookies(norm)
 
-    if not logged_in:
+    if not logged_in and obtained_from_qrcode:
+        # 二维码登录本身已取得 Credential；在线校验偶发失败时不要阻断主窗口启动。
+        print("二维码登录已完成，但在线校验未通过，继续使用刚获取的凭据启动")
+    elif not logged_in:
         print("当前 cookies 无效，开始重新二维码登录获取 cookies")
         try:
             new_cookies = sync(qrcode_login())
             norm = normalize_cookies(new_cookies)
             if not check_login_with_cookies(norm):
-                print("二维码登录后仍然无法验证登录，请检查 cookie 是否正确")
-                return None
+                print("二维码登录已完成，但在线校验未通过，继续使用刚获取的凭据启动")
             with open(cookies_file, "w", encoding="utf-8") as f:
                 json.dump(new_cookies, f, ensure_ascii=False)
             credential = create_credential_from_cookies(norm)

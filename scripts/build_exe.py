@@ -14,6 +14,24 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def get_packaging_python():
+    """选择包含 PyInstaller 的 Python，优先当前环境，回退项目 conda 环境。"""
+    try:
+        import importlib.util
+
+        if importlib.util.find_spec("PyInstaller"):
+            return [sys.executable]
+    except Exception:
+        pass
+
+    conda = shutil.which("conda")
+    if conda:
+        print("当前 Python 未安装 PyInstaller，切换到 conda 环境 learnpy", flush=True)
+        return [conda, "run", "-n", "learnpy", "python"]
+
+    raise RuntimeError("当前 Python 未安装 PyInstaller，且未找到 conda 环境 learnpy。")
+
+
 def run(cmd, cwd=None):
     cwd = cwd or ROOT
     # Windows 下 npm 是 npm.cmd，CreateProcess 直接跑会报 WinError 2，
@@ -32,7 +50,8 @@ def main():
     # 1. 前端构建（产物 frontend/dist）
     run(["npm", "run", "build"])
     # 2. PyInstaller 打包
-    run([sys.executable, "-m", "PyInstaller", "runlivetest.spec", "--noconfirm"])
+    python_cmd = get_packaging_python()
+    run(python_cmd + ["-m", "PyInstaller", "runlivetest.spec", "--noconfirm"])
     print("\n✅ 打包完成：dist\\RunLiveTest\\RunLiveTest.exe")
 
 

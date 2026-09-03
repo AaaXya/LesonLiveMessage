@@ -71,7 +71,12 @@ class AppContext:
                 "room_ids": [],
                 "room_bindings": {},
                 "frontend": {"theme": "default", "window_size": "default"},
-                "features": {key: False for key in FEATURE_KEYS},
+                "features": {
+                    key: False if key == "web_debug" else True
+                    for key in FEATURE_KEYS
+                    if key != "open_mode"
+                }
+                | {"open_mode": "webview"},
                 "filter_words": [],
                 "auto_speak": dict(DEFAULT_AUTO_SPEAK),
             }

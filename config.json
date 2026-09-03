@@ -1,11 +1,11 @@
 {
   "room_ids": [
-    1879006019,
-    1933933419
+    1933933419,
+    1879006019
   ],
   "room_bindings": {
     "1879006019": {
-      "enable_local_notification": true,
+      "enable_local_notification": false,
       "auto_speak": {
         "enabled": true,
         "cycle_list": [],
@@ -37,7 +37,25 @@
       }
     },
     "1933933419": {
-      "enable_local_notification": true
+      "enable_local_notification": false,
+      "auto_speak": {
+        "enabled": true,
+        "cycle_list": [],
+        "duration_list": [
+          {
+            "enabled": true,
+            "duration": 10800,
+            "text": "已经开播三小时啦，感谢大家陪伴！"
+          }
+        ],
+        "keyword_replies": [],
+        "quick_sends": [
+          {
+            "enabled": true,
+            "text": "千山万水总是情，上个舰长行不行~"
+          }
+        ]
+      }
     }
   },
   "frontend": {
@@ -66,14 +84,14 @@
   "auto_speak": {
     "enabled": true,
     "cycle_list": [],
-    "duration_list": [],
-    "keyword_replies": [
+    "duration_list": [
       {
         "enabled": true,
-        "keyword": "小雅",
-        "reply": "我在"
+        "duration": 10800,
+        "text": "已经开播三小时啦，感谢大家陪伴！"
       }
     ],
+    "keyword_replies": [],
     "quick_sends": [
       {
         "enabled": true,
